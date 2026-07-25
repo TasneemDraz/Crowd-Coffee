@@ -153,35 +153,41 @@ AC: recomputes `QuantityOnHand` from `StockMovement` ledger, reports drift from 
 
 Goal: pure domain logic, no I/O, fully unit-testable. Highest-risk epic alongside Epic 2.
 
-### Story 3.1 — State machine implementation
+### Story 3.1 — State machine implementation ✅
 AC: implements exactly the §7 graph; illegal transitions rejected, not silently ignored; every successful transition appends `OrderStatusHistory` in the same call.
-- [ ] T3.1.1 `OrderStatus` enum
-- [ ] T3.1.2 Transition-guard method on `Order` aggregate (`TransitionTo(newStatus, changedBy, reason)`)
-- [ ] T3.1.3 Validate legal edges from §7 graph before mutating
-- [ ] T3.1.4 Append `OrderStatusHistory` row on every successful transition
+- [x] T3.1.1 `OrderStatus` enum
+- [x] T3.1.2 Transition-guard method on `Order` aggregate (`TransitionTo(newStatus, changedBy, reason)`)
+- [x] T3.1.3 Validate legal edges from §7 graph before mutating
+- [x] T3.1.4 Append `OrderStatusHistory` row on every successful transition
 - Size: M · Depends on: 2.2
+- Delivered: `OrderStatus` enum actually landed back in Epic 2 Story 2.2 (needed for the `Order.Status` column type) — noted there at the time. `TransitionTo` also enforces a guard beyond the raw §7 graph: `Ready` only ever advances to `OutForDelivery` for `Mode == Delivery` or `PickedUp` for `Mode == Pickup`, not both — the diagram's two branches aren't both legal for a given order, and nothing in §7's text says this explicitly, so it would've been an easy gap. Returns `Result` (Domain/Common), not exceptions, on illegal transitions — an illegal transition attempt doesn't touch `Status` or append history at all (verified by test).
 
-### Story 3.2 — Entry-point routing by payment method
+### Story 3.2 — Entry-point routing by payment method ✅
 AC: cash orders constructible only at `Pending`; card/wallet only at `PendingPayment`.
-- [ ] T3.2.1 `Order.CreateCash(...)` factory method
-- [ ] T3.2.2 `Order.CreatePendingPayment(...)` factory method
-- [ ] T3.2.3 Remove/restrict public constructor to prevent arbitrary initial status
+- [x] T3.2.1 `Order.CreateCash(...)` factory method
+- [x] T3.2.2 `Order.CreatePendingPayment(...)` factory method
+- [x] T3.2.3 Remove/restrict public constructor to prevent arbitrary initial status
 - Size: S · Depends on: 3.1
+- Delivered: `Order`'s only constructor is a private parameterless one (for EF); the two factories are the sole public creation path. `CreatePendingPayment` throws if handed `PaymentMethod.Cash` — a cash order can never be constructed at `PendingPayment`, closing off the exact bypass §7 warns about ("never reach the kitchen board until the gateway webhook confirms").
 
-### Story 3.3 — Cancellation releases reservations (domain event)
+### Story 3.3 — Cancellation releases reservations (domain event) ✅
 AC: cancelling raises `OrderCancelled`; state machine itself doesn't know about `StockItem`.
-- [ ] T3.3.1 Add lightweight in-memory domain event dispatch
-- [ ] T3.3.2 `OrderCancelled` event carrying order id + line items
-- [ ] T3.3.3 Raise event from the cancellation transition
+- [x] T3.3.1 Add lightweight in-memory domain event dispatch
+- [x] T3.3.2 `OrderCancelled` event carrying order id + line items
+- [x] T3.3.3 Raise event from the cancellation transition
 - Size: S · Depends on: 3.1
+- Delivered: `OrderCancelledEvent` carries **only `OrderId`**, not line items — deliberate deviation from the task title's "+ line items." A handler built from whatever `Order.Items` happened to have loaded in memory at transition time would silently produce wrong results if the caller hadn't `Include()`'d that navigation before calling `TransitionTo`; safer for Epic 4's future stock-release handler to re-query the order's items itself once it exists. Built the dispatch as real, wired plumbing, not a stub: `IDomainEventDispatcher`/`IDomainEventHandler<T>` (Application) + reflection-based `DomainEventDispatcher` (Infrastructure) resolving `IDomainEventHandler<TEvent>` per event's runtime type; `CrowdCoffeeDbContext.SaveChangesAsync` collects events from tracked `IHasDomainEvents` entities, saves first, *then* dispatches — so a handler never reacts to an event whose transaction got rolled back. `LoggingOrderCancelledHandler` is the one real registered handler for now (logs the cancellation) — proves the pipeline end-to-end the same way Epic 1's diagnostics endpoint proved the validation pipeline, and stays useful even after Epic 4 adds the real stock-release handler alongside it. Confirmed via `dotnet ef migrations has-pending-model-changes` that `Order` implementing `IHasDomainEvents` didn't accidentally introduce a phantom schema change (EF ignores it correctly).
 
-### Story 3.4 — Unit test suite for the state machine
+### Story 3.4 — Unit test suite for the state machine ✅
 AC: every legal edge tested positive, every illegal edge tested negative; cash vs. card entry-point rules tested.
-- [ ] T3.4.1 xUnit project against Domain only, no database
-- [ ] T3.4.2 Positive tests for every legal transition
-- [ ] T3.4.3 Negative tests for illegal transitions (e.g. `Ready → Pending`)
-- [ ] T3.4.4 Entry-point tests (cash vs. card/wallet)
+- [x] T3.4.1 xUnit project against Domain only, no database
+- [x] T3.4.2 Positive tests for every legal transition
+- [x] T3.4.3 Negative tests for illegal transitions (e.g. `Ready → Pending`)
+- [x] T3.4.4 Entry-point tests (cash vs. card/wallet)
 - Size: M · Depends on: 3.1, 3.2
+- Delivered: `OrderStateMachineTests.cs` in the existing `CrowdCoffee.Domain.Tests` project (no new test project needed). 26 tests, all passing: every legal edge, illegal edges (including the specific `Ready → Pending` case called out in the AC, and cancellation from `Ready`/`OutForDelivery`/`Delivered`), both full happy paths (delivery → `Delivered`, pickup → `PickedUp`), the mode guard in both directions, cash-vs-card/wallet entry points (including the `CreatePendingPayment` + `Cash` rejection), `OrderStatusHistory` append-on-success / no-append-on-failure, and domain-event raise/no-raise/clear. Full suite (27 incl. the Epic 1 smoke test) run via `dotnet test`.
+
+## Epic 3 status: ✅ complete (4/4 stories)
 
 ---
 

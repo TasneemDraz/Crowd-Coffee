@@ -1,4 +1,6 @@
+using CrowdCoffee.Application.Common;
 using CrowdCoffee.Domain.Catalog;
+using CrowdCoffee.Domain.Common;
 using CrowdCoffee.Domain.Inventory;
 using CrowdCoffee.Domain.Ordering;
 using CrowdCoffee.Domain.Staff;
@@ -7,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CrowdCoffee.Infrastructure.Persistence;
 
-public class CrowdCoffeeDbContext(DbContextOptions<CrowdCoffeeDbContext> options) : DbContext(options)
+public class CrowdCoffeeDbContext(DbContextOptions<CrowdCoffeeDbContext> options, IDomainEventDispatcher domainEventDispatcher) : DbContext(options)
 {
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<Product> Products => Set<Product>();
@@ -35,5 +37,28 @@ public class CrowdCoffeeDbContext(DbContextOptions<CrowdCoffeeDbContext> options
         modelBuilder.Entity<ModifierGroup>().HasData(MenuSeedData.ModifierGroups);
         modelBuilder.Entity<ModifierOption>().HasData(MenuSeedData.ModifierOptions);
         modelBuilder.Entity<ProductModifierGroup>().HasData(MenuSeedData.ProductModifierGroups);
+    }
+
+    /// Collects domain events raised by tracked aggregates (e.g. Order.TransitionTo(Cancelled))
+    /// and dispatches them only after the save actually succeeds — a handler reacting to an
+    /// event that got rolled back would be reacting to something that never happened.
+    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        var entitiesWithEvents = ChangeTracker.Entries<IHasDomainEvents>()
+            .Select(e => e.Entity)
+            .Where(e => e.DomainEvents.Count > 0)
+            .ToList();
+
+        var result = await base.SaveChangesAsync(cancellationToken);
+
+        var domainEvents = entitiesWithEvents.SelectMany(e => e.DomainEvents).ToList();
+        foreach (var entity in entitiesWithEvents)
+        {
+            entity.ClearDomainEvents();
+        }
+
+        await domainEventDispatcher.DispatchAsync(domainEvents, cancellationToken);
+
+        return result;
     }
 }

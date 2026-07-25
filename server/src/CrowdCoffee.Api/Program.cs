@@ -1,6 +1,9 @@
 using CrowdCoffee.Api.Middleware;
+using CrowdCoffee.Application.Common;
 using CrowdCoffee.Application.Diagnostics;
 using CrowdCoffee.Application.Inventory;
+using CrowdCoffee.Application.Ordering;
+using CrowdCoffee.Domain.Ordering;
 using CrowdCoffee.Infrastructure.Configuration;
 using CrowdCoffee.Infrastructure.Persistence;
 using CrowdCoffee.Infrastructure.Persistence.Repositories;
@@ -22,6 +25,9 @@ builder.Services.Configure<DatabaseOptions>(builder.Configuration.GetSection(Dat
 
 var connectionString = builder.Configuration.GetSection(DatabaseOptions.SectionName)["ConnectionString"]
     ?? throw new InvalidOperationException("Database:ConnectionString is not configured.");
+
+builder.Services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
+builder.Services.AddScoped<IDomainEventHandler<OrderCancelledEvent>, LoggingOrderCancelledHandler>();
 
 builder.Services.AddDbContext<CrowdCoffeeDbContext>(options => options.UseSqlServer(connectionString));
 
