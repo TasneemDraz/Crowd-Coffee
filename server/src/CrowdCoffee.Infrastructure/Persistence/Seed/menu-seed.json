@@ -1,0 +1,1341 @@
+{
+  "CATEGORIES": [
+    {
+      "id": "black",
+      "label": "Black Coffee"
+    },
+    {
+      "id": "classic",
+      "label": "Classic Coffee"
+    },
+    {
+      "id": "iced",
+      "label": "Iced Coffee"
+    },
+    {
+      "id": "speciality",
+      "label": "Speciality"
+    },
+    {
+      "id": "sigdrinks",
+      "label": "Signatures"
+    },
+    {
+      "id": "noncoffee",
+      "label": "Non Coffee"
+    },
+    {
+      "id": "frappe",
+      "label": "Frappé Blended"
+    },
+    {
+      "id": "matcha",
+      "label": "Matcha"
+    },
+    {
+      "id": "shakes",
+      "label": "Shakes"
+    },
+    {
+      "id": "smoothies",
+      "label": "Smoothies"
+    },
+    {
+      "id": "mojito",
+      "label": "Mojito"
+    },
+    {
+      "id": "sandwiches",
+      "label": "Sandwiches"
+    },
+    {
+      "id": "breakfast",
+      "label": "Breakfast"
+    },
+    {
+      "id": "bakery",
+      "label": "Bakery"
+    },
+    {
+      "id": "sweetbakeries",
+      "label": "Sweet Bakeries"
+    },
+    {
+      "id": "pastries",
+      "label": "Pastries"
+    },
+    {
+      "id": "sigdesserts",
+      "label": "Signature Desserts"
+    },
+    {
+      "id": "cheesecakes",
+      "label": "Cheesecakes"
+    },
+    {
+      "id": "salads",
+      "label": "Salads"
+    }
+  ],
+  "D": {
+    "black": "Bold, no milk, no fuss.",
+    "classic": "Espresso-based, made the classic way.",
+    "iced": "Chilled and ready for the corniche heat.",
+    "speciality": "Manual brew methods, made to order.",
+    "sigdrinks": "CROWD originals — the ones only we make.",
+    "noncoffee": "For the non-coffee crowd.",
+    "frappe": "Blended, creamy, and cold.",
+    "matcha": "Ceremonial-grade matcha, hot or iced.",
+    "shakes": "Thick, blended, and topped up.",
+    "smoothies": "Fresh fruit, blended smooth.",
+    "mojito": "Fruit and soda over ice, alcohol-free.",
+    "sandwiches": "Baguette, sourdough or tortilla — your call.",
+    "breakfast": "Morning plates, all day long.",
+    "bakery": "Fresh croissants, baked daily.",
+    "sweetbakeries": "Filled and finished, straight from the oven.",
+    "pastries": "Cookies and cakes, baked in-house.",
+    "sigdesserts": "House specialties from the pastry case.",
+    "salads": "Fresh and hearty, for the health-conscious."
+  },
+  "ITEMS": [
+    {
+      "id": "b-espresso",
+      "cat": "black",
+      "name": "Espresso",
+      "desc": "Bold, no milk, no fuss.",
+      "price": 70
+    },
+    {
+      "id": "b-americano",
+      "cat": "black",
+      "name": "Americano",
+      "desc": "Bold, no milk, no fuss.",
+      "price": 80
+    },
+    {
+      "id": "b-turkish",
+      "cat": "black",
+      "name": "Turkish Coffee",
+      "desc": "Bold, no milk, no fuss.",
+      "price": 75
+    },
+    {
+      "id": "b-freddo",
+      "cat": "black",
+      "name": "Freddo Espresso",
+      "desc": "Bold, no milk, no fuss.",
+      "price": 90
+    },
+    {
+      "id": "c-bonbon",
+      "cat": "classic",
+      "name": "Espresso Bonbon",
+      "desc": "Espresso-based, made the classic way.",
+      "price": 95
+    },
+    {
+      "id": "c-macchiato",
+      "cat": "classic",
+      "name": "Macchiato",
+      "desc": "Espresso-based, made the classic way.",
+      "price": 90
+    },
+    {
+      "id": "c-cortado",
+      "cat": "classic",
+      "name": "Cortado",
+      "desc": "Espresso-based, made the classic way.",
+      "price": 95
+    },
+    {
+      "id": "c-flatwhite",
+      "cat": "classic",
+      "name": "Flat White",
+      "desc": "Espresso-based, made the classic way.",
+      "price": 105
+    },
+    {
+      "id": "c-cappuccino",
+      "cat": "classic",
+      "name": "Cappuccino",
+      "desc": "Espresso-based, made the classic way.",
+      "price": 100
+    },
+    {
+      "id": "c-latte",
+      "cat": "classic",
+      "name": "Latte",
+      "desc": "Espresso-based, made the classic way.",
+      "price": 100
+    },
+    {
+      "id": "c-mocha",
+      "cat": "classic",
+      "name": "Mocha",
+      "desc": "Espresso-based, made the classic way.",
+      "price": 110
+    },
+    {
+      "id": "c-whitemocha",
+      "cat": "classic",
+      "name": "White Mocha",
+      "desc": "Espresso-based, made the classic way.",
+      "price": 110
+    },
+    {
+      "id": "c-caramelmac",
+      "cat": "classic",
+      "name": "Caramel Macchiato",
+      "desc": "Espresso-based, made the classic way.",
+      "price": 115
+    },
+    {
+      "id": "c-frenchcoffee",
+      "cat": "classic",
+      "name": "French Coffee",
+      "desc": "Espresso-based, made the classic way.",
+      "price": 100
+    },
+    {
+      "id": "c-hazelnut",
+      "cat": "classic",
+      "name": "Hazelnut Coffee",
+      "desc": "Espresso-based, made the classic way.",
+      "price": 105
+    },
+    {
+      "id": "c-spanish",
+      "cat": "classic",
+      "name": "Spanish Latte",
+      "desc": "Espresso-based, made the classic way.",
+      "price": 110
+    },
+    {
+      "id": "i-latte",
+      "cat": "iced",
+      "name": "Iced Latte",
+      "desc": "Chilled and ready for the corniche heat.",
+      "price": 110
+    },
+    {
+      "id": "i-americano",
+      "cat": "iced",
+      "name": "Iced Americano",
+      "desc": "Chilled and ready for the corniche heat.",
+      "price": 95
+    },
+    {
+      "id": "i-cappuccino",
+      "cat": "iced",
+      "name": "Iced Cappuccino",
+      "desc": "Chilled and ready for the corniche heat.",
+      "price": 115
+    },
+    {
+      "id": "i-spanish",
+      "cat": "iced",
+      "name": "Iced Spanish Latte",
+      "desc": "Chilled and ready for the corniche heat.",
+      "price": 120
+    },
+    {
+      "id": "i-saltedcaramel",
+      "cat": "iced",
+      "name": "Iced Salted Caramel",
+      "desc": "Chilled and ready for the corniche heat.",
+      "price": 125
+    },
+    {
+      "id": "i-caramelmac",
+      "cat": "iced",
+      "name": "Iced Caramel Macchiato",
+      "desc": "Chilled and ready for the corniche heat.",
+      "price": 125
+    },
+    {
+      "id": "i-mocha",
+      "cat": "iced",
+      "name": "Iced Mocha",
+      "desc": "Chilled and ready for the corniche heat.",
+      "price": 120
+    },
+    {
+      "id": "i-whitemocha",
+      "cat": "iced",
+      "name": "Iced White Mocha",
+      "desc": "Chilled and ready for the corniche heat.",
+      "price": 120
+    },
+    {
+      "id": "i-caramel",
+      "cat": "iced",
+      "name": "Iced Caramel",
+      "desc": "Chilled and ready for the corniche heat.",
+      "price": 115
+    },
+    {
+      "id": "i-vanilla",
+      "cat": "iced",
+      "name": "Iced Vanilla",
+      "desc": "Chilled and ready for the corniche heat.",
+      "price": 110
+    },
+    {
+      "id": "i-pistachio",
+      "cat": "iced",
+      "name": "Iced Pistachio",
+      "desc": "Chilled and ready for the corniche heat.",
+      "price": 130
+    },
+    {
+      "id": "i-saltedbrownies",
+      "cat": "iced",
+      "name": "Iced Salted Brownies",
+      "desc": "Chilled and ready for the corniche heat.",
+      "price": 130
+    },
+    {
+      "id": "i-coconut",
+      "cat": "iced",
+      "name": "Iced Coconut",
+      "desc": "Chilled and ready for the corniche heat.",
+      "price": 120
+    },
+    {
+      "id": "i-orangechoco",
+      "cat": "iced",
+      "name": "Iced Orange Choco",
+      "desc": "Chilled and ready for the corniche heat.",
+      "price": 125
+    },
+    {
+      "id": "i-orangecaramel",
+      "cat": "iced",
+      "name": "Iced Orange Caramel",
+      "desc": "Chilled and ready for the corniche heat.",
+      "price": 125
+    },
+    {
+      "id": "i-hazelnutcandy",
+      "cat": "iced",
+      "name": "Iced Hazelnut Candy",
+      "desc": "Chilled and ready for the corniche heat.",
+      "price": 125
+    },
+    {
+      "id": "s-v60",
+      "cat": "speciality",
+      "name": "V60 / Origami",
+      "desc": "Manual brew methods, made to order.",
+      "price": 130
+    },
+    {
+      "id": "s-aeropress",
+      "cat": "speciality",
+      "name": "Aeropress",
+      "desc": "Manual brew methods, made to order.",
+      "price": 130
+    },
+    {
+      "id": "s-chemix",
+      "cat": "speciality",
+      "name": "Chemix",
+      "desc": "Manual brew methods, made to order.",
+      "price": 140
+    },
+    {
+      "id": "s-frenchpress",
+      "cat": "speciality",
+      "name": "French Press",
+      "desc": "Manual brew methods, made to order.",
+      "price": 130
+    },
+    {
+      "id": "n-tea",
+      "cat": "noncoffee",
+      "name": "Tea / Green Tea",
+      "desc": "For the non-coffee crowd.",
+      "price": 60
+    },
+    {
+      "id": "n-herbs",
+      "cat": "noncoffee",
+      "name": "Herbs",
+      "desc": "For the non-coffee crowd.",
+      "price": 60
+    },
+    {
+      "id": "n-flavoredtea",
+      "cat": "noncoffee",
+      "name": "Flavored Tea",
+      "desc": "For the non-coffee crowd.",
+      "price": 65
+    },
+    {
+      "id": "n-karak",
+      "cat": "noncoffee",
+      "name": "Karak",
+      "desc": "For the non-coffee crowd.",
+      "price": 65
+    },
+    {
+      "id": "n-classicchoc",
+      "cat": "noncoffee",
+      "name": "Classic Chocolate",
+      "desc": "For the non-coffee crowd.",
+      "price": 90
+    },
+    {
+      "id": "n-hotdarkchoc",
+      "cat": "noncoffee",
+      "name": "Hot Dark Chocolate",
+      "desc": "For the non-coffee crowd.",
+      "price": 100
+    },
+    {
+      "id": "n-hotwhitechoc",
+      "cat": "noncoffee",
+      "name": "Hot White Chocolate",
+      "desc": "For the non-coffee crowd.",
+      "price": 100
+    },
+    {
+      "id": "n-hothazelnutchoc",
+      "cat": "noncoffee",
+      "name": "Hot Hazelnut Chocolate",
+      "desc": "For the non-coffee crowd.",
+      "price": 105
+    },
+    {
+      "id": "n-decaf",
+      "cat": "noncoffee",
+      "name": "Decaf",
+      "desc": "For the non-coffee crowd.",
+      "price": 80
+    },
+    {
+      "id": "f-classic",
+      "cat": "frappe",
+      "name": "Classic",
+      "desc": "Blended, creamy, and cold.",
+      "price": 130
+    },
+    {
+      "id": "f-mocha",
+      "cat": "frappe",
+      "name": "Mocha",
+      "desc": "Blended, creamy, and cold.",
+      "price": 140
+    },
+    {
+      "id": "f-whitemocha",
+      "cat": "frappe",
+      "name": "White Mocha",
+      "desc": "Blended, creamy, and cold.",
+      "price": 140
+    },
+    {
+      "id": "f-caramel",
+      "cat": "frappe",
+      "name": "Caramel",
+      "desc": "Blended, creamy, and cold.",
+      "price": 140
+    },
+    {
+      "id": "f-saltedcaramel",
+      "cat": "frappe",
+      "name": "Salted Caramel",
+      "desc": "Blended, creamy, and cold.",
+      "price": 145
+    },
+    {
+      "id": "f-vanilla",
+      "cat": "frappe",
+      "name": "Vanilla",
+      "desc": "Blended, creamy, and cold.",
+      "price": 130
+    },
+    {
+      "id": "f-pistachio",
+      "cat": "frappe",
+      "name": "Pistachio",
+      "desc": "Blended, creamy, and cold.",
+      "price": 155
+    },
+    {
+      "id": "f-saltedbrownies",
+      "cat": "frappe",
+      "name": "Salted Brownies",
+      "desc": "Blended, creamy, and cold.",
+      "price": 150
+    },
+    {
+      "id": "f-coconut",
+      "cat": "frappe",
+      "name": "Coconut",
+      "desc": "Blended, creamy, and cold.",
+      "price": 140
+    },
+    {
+      "id": "f-orangechoco",
+      "cat": "frappe",
+      "name": "Orange Choco",
+      "desc": "Blended, creamy, and cold.",
+      "price": 145
+    },
+    {
+      "id": "f-orangecaramel",
+      "cat": "frappe",
+      "name": "Orange Caramel",
+      "desc": "Blended, creamy, and cold.",
+      "price": 145
+    },
+    {
+      "id": "f-spanish",
+      "cat": "frappe",
+      "name": "Spanish Latte",
+      "desc": "Blended, creamy, and cold.",
+      "price": 145
+    },
+    {
+      "id": "f-hazelnutcandy",
+      "cat": "frappe",
+      "name": "Hazelnut Candy",
+      "desc": "Blended, creamy, and cold.",
+      "price": 150
+    },
+    {
+      "id": "f-cinnamon",
+      "cat": "frappe",
+      "name": "Cinnamon",
+      "desc": "Blended, creamy, and cold.",
+      "price": 135
+    },
+    {
+      "id": "m-hot",
+      "cat": "matcha",
+      "name": "Hot Matcha",
+      "desc": "Ceremonial-grade matcha, hot or iced.",
+      "price": 120
+    },
+    {
+      "id": "m-hotwhite",
+      "cat": "matcha",
+      "name": "Hot White Matcha",
+      "desc": "Ceremonial-grade matcha, hot or iced.",
+      "price": 125
+    },
+    {
+      "id": "m-hotcoconut",
+      "cat": "matcha",
+      "name": "Hot Coconut Matcha",
+      "desc": "Ceremonial-grade matcha, hot or iced.",
+      "price": 125
+    },
+    {
+      "id": "m-iced",
+      "cat": "matcha",
+      "name": "Iced Matcha",
+      "desc": "Ceremonial-grade matcha, hot or iced.",
+      "price": 125
+    },
+    {
+      "id": "m-strawberry",
+      "cat": "matcha",
+      "name": "Strawberry Matcha",
+      "desc": "Ceremonial-grade matcha, hot or iced.",
+      "price": 135
+    },
+    {
+      "id": "m-mango",
+      "cat": "matcha",
+      "name": "Mango Matcha",
+      "desc": "Ceremonial-grade matcha, hot or iced.",
+      "price": 135
+    },
+    {
+      "id": "m-mixedberries",
+      "cat": "matcha",
+      "name": "Mixed Berries Matcha",
+      "desc": "Ceremonial-grade matcha, hot or iced.",
+      "price": 135
+    },
+    {
+      "id": "m-saltedcaramel",
+      "cat": "matcha",
+      "name": "Salted Caramel Matcha",
+      "desc": "Ceremonial-grade matcha, hot or iced.",
+      "price": 140
+    },
+    {
+      "id": "m-spanish",
+      "cat": "matcha",
+      "name": "Spanish Matcha",
+      "desc": "Ceremonial-grade matcha, hot or iced.",
+      "price": 130
+    },
+    {
+      "id": "m-vanilla",
+      "cat": "matcha",
+      "name": "Vanilla Matcha",
+      "desc": "Ceremonial-grade matcha, hot or iced.",
+      "price": 125
+    },
+    {
+      "id": "m-hazelnut",
+      "cat": "matcha",
+      "name": "Hazelnut Matcha",
+      "desc": "Ceremonial-grade matcha, hot or iced.",
+      "price": 130
+    },
+    {
+      "id": "sm-greenocean",
+      "cat": "smoothies",
+      "name": "Green Ocean",
+      "desc": "Fresh fruit, blended smooth.",
+      "price": 130
+    },
+    {
+      "id": "sm-redbeach",
+      "cat": "smoothies",
+      "name": "Red Beach",
+      "desc": "Fresh fruit, blended smooth.",
+      "price": 130
+    },
+    {
+      "id": "sm-orangesky",
+      "cat": "smoothies",
+      "name": "Orange Sky (Sunset)",
+      "desc": "Fresh fruit, blended smooth.",
+      "price": 130
+    },
+    {
+      "id": "sm-pinacolada",
+      "cat": "smoothies",
+      "name": "Pinacolada",
+      "desc": "Fresh fruit, blended smooth.",
+      "price": 135
+    },
+    {
+      "id": "sm-mangopassion",
+      "cat": "smoothies",
+      "name": "Mango Passion",
+      "desc": "Fresh fruit, blended smooth.",
+      "price": 135
+    },
+    {
+      "id": "sm-mixorange",
+      "cat": "smoothies",
+      "name": "Mix Orange",
+      "desc": "Fresh fruit, blended smooth.",
+      "price": 125
+    },
+    {
+      "id": "sm-strawberry",
+      "cat": "smoothies",
+      "name": "Strawberry",
+      "desc": "Fresh fruit, blended smooth.",
+      "price": 130
+    },
+    {
+      "id": "mj-greenocean",
+      "cat": "mojito",
+      "name": "Green Ocean",
+      "desc": "Fruit and soda over ice, alcohol-free.",
+      "price": 140
+    },
+    {
+      "id": "mj-redbeach",
+      "cat": "mojito",
+      "name": "Red Beach",
+      "desc": "Fruit and soda over ice, alcohol-free.",
+      "price": 140
+    },
+    {
+      "id": "mj-orangesky",
+      "cat": "mojito",
+      "name": "Orange Sky (Sunset)",
+      "desc": "Fruit and soda over ice, alcohol-free.",
+      "price": 140
+    },
+    {
+      "id": "mj-pinacolada",
+      "cat": "mojito",
+      "name": "Pinacolada",
+      "desc": "Fruit and soda over ice, alcohol-free.",
+      "price": 145
+    },
+    {
+      "id": "mj-mangopassion",
+      "cat": "mojito",
+      "name": "Mango Passion",
+      "desc": "Fruit and soda over ice, alcohol-free.",
+      "price": 145
+    },
+    {
+      "id": "mj-mixorange",
+      "cat": "mojito",
+      "name": "Mix Orange",
+      "desc": "Fruit and soda over ice, alcohol-free.",
+      "price": 135
+    },
+    {
+      "id": "mj-strawberry",
+      "cat": "mojito",
+      "name": "Strawberry",
+      "desc": "Fruit and soda over ice, alcohol-free.",
+      "price": 140
+    },
+    {
+      "id": "ch-sanseb",
+      "cat": "cheesecakes",
+      "name": "San Sebastian",
+      "desc": "Burnt Basque-style cheesecake.",
+      "price": 160
+    },
+    {
+      "id": "ch-pistachio",
+      "cat": "cheesecakes",
+      "name": "Pistachio Cheesecake",
+      "desc": "Pistachio cream and crushed nuts.",
+      "price": 175
+    },
+    {
+      "id": "ch-blueberry",
+      "cat": "cheesecakes",
+      "name": "Blueberry Cheesecake",
+      "desc": "Baked cheesecake, blueberry compote.",
+      "price": 165
+    },
+    {
+      "id": "ch-raspberry",
+      "cat": "cheesecakes",
+      "name": "Raspberry Cheesecake",
+      "desc": "Baked cheesecake, raspberry coulis.",
+      "price": 165
+    },
+    {
+      "id": "ch-strawberry",
+      "cat": "cheesecakes",
+      "name": "Strawberry Cheesecake",
+      "desc": "Baked cheesecake, fresh strawberry topping.",
+      "price": 165
+    },
+    {
+      "id": "ch-biscoff",
+      "cat": "cheesecakes",
+      "name": "Biscoff Lotus Cheesecake",
+      "desc": "Lotus biscuit crust and caramel drizzle.",
+      "price": 175
+    },
+    {
+      "id": "ch-oreo",
+      "cat": "cheesecakes",
+      "name": "Oreo Cheesecake",
+      "desc": "Oreo crust, chocolate cheesecake filling.",
+      "price": 170
+    },
+    {
+      "id": "ch-lemon",
+      "cat": "cheesecakes",
+      "name": "Lemon Cheesecake",
+      "desc": "Baked cheesecake, tangy lemon curd.",
+      "price": 160
+    },
+    {
+      "id": "ch-marble",
+      "cat": "cheesecakes",
+      "name": "Marble Cheesecake",
+      "desc": "Swirled chocolate and vanilla cheesecake.",
+      "price": 165
+    },
+    {
+      "id": "ch-mixedberry",
+      "cat": "cheesecakes",
+      "name": "Mixed Berry Cheesecake",
+      "desc": "Baked cheesecake, mixed berry compote.",
+      "price": 170
+    },
+    {
+      "id": "ch-cherry",
+      "cat": "cheesecakes",
+      "name": "Cherry Cheesecake",
+      "desc": "Baked cheesecake, cherry topping.",
+      "price": 165
+    },
+    {
+      "id": "sd-hazelnutcandyspanish",
+      "cat": "sigdrinks",
+      "name": "Hazelnut Candy Spanish Latte",
+      "desc": "CROWD originals — the ones only we make.",
+      "price": 130
+    },
+    {
+      "id": "sd-whiteraspberry",
+      "cat": "sigdrinks",
+      "name": "White Raspberry",
+      "desc": "CROWD originals — the ones only we make.",
+      "price": 130
+    },
+    {
+      "id": "sd-pineapplewhitemocha",
+      "cat": "sigdrinks",
+      "name": "Pineapple White Mocha",
+      "desc": "CROWD originals — the ones only we make.",
+      "price": 130
+    },
+    {
+      "id": "sd-cinnamonspanish",
+      "cat": "sigdrinks",
+      "name": "Cinnamon Spanish Latte",
+      "desc": "CROWD originals — the ones only we make.",
+      "price": 125
+    },
+    {
+      "id": "sd-pumpkinspiced",
+      "cat": "sigdrinks",
+      "name": "Pumpkin Spiced Latte (Iced or Shaked)",
+      "desc": "CROWD originals — the ones only we make.",
+      "price": 135
+    },
+    {
+      "id": "sd-strawberryhotchoco",
+      "cat": "sigdrinks",
+      "name": "Strawberry Hot Choco",
+      "desc": "CROWD originals — the ones only we make.",
+      "price": 125
+    },
+    {
+      "id": "sd-cinnamonhotchoco",
+      "cat": "sigdrinks",
+      "name": "Cinnamon Hot Choco",
+      "desc": "CROWD originals — the ones only we make.",
+      "price": 120
+    },
+    {
+      "id": "sd-affogato",
+      "cat": "sigdrinks",
+      "name": "Affogato",
+      "desc": "CROWD originals — the ones only we make.",
+      "price": 135
+    },
+    {
+      "id": "sd-crowdblend",
+      "cat": "sigdrinks",
+      "name": "Crowd Blend",
+      "desc": "CROWD originals — the ones only we make.",
+      "price": 140
+    },
+    {
+      "id": "sd-icedorangecaramelmac",
+      "cat": "sigdrinks",
+      "name": "Iced Orange Caramel Macchiato",
+      "desc": "CROWD originals — the ones only we make.",
+      "price": 130
+    },
+    {
+      "id": "sd-peachcoconutmocha",
+      "cat": "sigdrinks",
+      "name": "Peach Coconut White Mocha",
+      "desc": "CROWD originals — the ones only we make.",
+      "price": 135
+    },
+    {
+      "id": "sd-gingersnapmocha",
+      "cat": "sigdrinks",
+      "name": "Gingersnap Mocha",
+      "desc": "CROWD originals — the ones only we make.",
+      "price": 130
+    },
+    {
+      "id": "sd-coconutmatcha",
+      "cat": "sigdrinks",
+      "name": "Coconut Matcha",
+      "desc": "CROWD originals — the ones only we make.",
+      "price": 135
+    },
+    {
+      "id": "sd-vanillacinnamonmocha",
+      "cat": "sigdrinks",
+      "name": "Vanilla Cinnamon White Mocha",
+      "desc": "CROWD originals — the ones only we make.",
+      "price": 130
+    },
+    {
+      "id": "sh-birthdaycake",
+      "cat": "shakes",
+      "name": "Birthday Cake",
+      "desc": "Thick, blended, and topped up.",
+      "price": 145
+    },
+    {
+      "id": "sh-doublechoc",
+      "cat": "shakes",
+      "name": "Double Chocolate Shake",
+      "desc": "Thick, blended, and topped up.",
+      "price": 145
+    },
+    {
+      "id": "sh-pistachio",
+      "cat": "shakes",
+      "name": "Pistachio Shake",
+      "desc": "Thick, blended, and topped up.",
+      "price": 155
+    },
+    {
+      "id": "sh-strawberry",
+      "cat": "shakes",
+      "name": "Strawberry",
+      "desc": "Thick, blended, and topped up.",
+      "price": 135
+    },
+    {
+      "id": "sh-cashew",
+      "cat": "shakes",
+      "name": "Cashew Shake",
+      "desc": "Thick, blended, and topped up.",
+      "price": 150
+    },
+    {
+      "id": "sh-crowdshake",
+      "cat": "shakes",
+      "name": "Crowd Shake",
+      "desc": "Thick, blended, and topped up.",
+      "price": 155
+    },
+    {
+      "id": "sh-saltedbrownies",
+      "cat": "shakes",
+      "name": "Salted Brownies",
+      "desc": "Thick, blended, and topped up.",
+      "price": 150
+    },
+    {
+      "id": "sh-biscoff",
+      "cat": "shakes",
+      "name": "Biscoff Shake",
+      "desc": "Thick, blended, and topped up.",
+      "price": 155
+    },
+    {
+      "id": "sw-roastbeef",
+      "cat": "sandwiches",
+      "name": "Roastbeef",
+      "desc": "Signature. Baguette / Sourdough / Tortilla.",
+      "price": 165
+    },
+    {
+      "id": "sw-pestochicken",
+      "cat": "sandwiches",
+      "name": "Pesto Chicken",
+      "desc": "Toast / Baguette / Tortilla.",
+      "price": 150
+    },
+    {
+      "id": "sw-sourdoughhalloumi",
+      "cat": "sandwiches",
+      "name": "Sourdough Halloumi",
+      "desc": "Signature. Baguette / Sourdough / Tortilla.",
+      "price": 140
+    },
+    {
+      "id": "sw-mixedcheese",
+      "cat": "sandwiches",
+      "name": "Mixed Cheese",
+      "desc": "Baguette / Sourdough / Tortilla.",
+      "price": 130
+    },
+    {
+      "id": "sw-salmonavocado",
+      "cat": "sandwiches",
+      "name": "Salmon Avocado",
+      "desc": "Signature. Baguette / Sourdough / Tortilla.",
+      "price": 190
+    },
+    {
+      "id": "sw-turkey",
+      "cat": "sandwiches",
+      "name": "Turkey",
+      "desc": "Sourdough / Tortilla.",
+      "price": 150
+    },
+    {
+      "id": "sw-avocadoshrimp",
+      "cat": "sandwiches",
+      "name": "Avocado Shrimp",
+      "desc": "Signature. Baguette / Tortilla.",
+      "price": 195
+    },
+    {
+      "id": "bf-turkeycroissant",
+      "cat": "breakfast",
+      "name": "Turkey Croissant",
+      "desc": "Morning plates, all day long.",
+      "price": 110
+    },
+    {
+      "id": "bf-roastbeefcroissant",
+      "cat": "breakfast",
+      "name": "Roastbeef Croissant",
+      "desc": "Morning plates, all day long.",
+      "price": 120
+    },
+    {
+      "id": "bf-halloumicroissant",
+      "cat": "breakfast",
+      "name": "Halloumi Croissant",
+      "desc": "Morning plates, all day long.",
+      "price": 100
+    },
+    {
+      "id": "bf-croissant",
+      "cat": "breakfast",
+      "name": "Croissant",
+      "desc": "Morning plates, all day long.",
+      "price": 65
+    },
+    {
+      "id": "bf-minipizza",
+      "cat": "breakfast",
+      "name": "Mini Pizza",
+      "desc": "Morning plates, all day long.",
+      "price": 90
+    },
+    {
+      "id": "bf-omelette",
+      "cat": "breakfast",
+      "name": "Crowd's Omelette Platter",
+      "desc": "Signature. Morning plates, all day long.",
+      "price": 160
+    },
+    {
+      "id": "bf-scrambledeggs",
+      "cat": "breakfast",
+      "name": "Crowd's Scrambled Eggs",
+      "desc": "Signature. Morning plates, all day long.",
+      "price": 140
+    },
+    {
+      "id": "bf-clubsandwich",
+      "cat": "breakfast",
+      "name": "Club Sandwich",
+      "desc": "Morning plates, all day long.",
+      "price": 145
+    },
+    {
+      "id": "bk-plaincroissant",
+      "cat": "bakery",
+      "name": "Plain Croissant",
+      "desc": "Fresh croissants, baked daily.",
+      "price": 60
+    },
+    {
+      "id": "bk-thymecroissant",
+      "cat": "bakery",
+      "name": "Thyme Croissant",
+      "desc": "Fresh croissants, baked daily.",
+      "price": 70
+    },
+    {
+      "id": "bk-labnehcroissant",
+      "cat": "bakery",
+      "name": "Labneh Croissant",
+      "desc": "Fresh croissants, baked daily.",
+      "price": 75
+    },
+    {
+      "id": "bk-focaccia",
+      "cat": "bakery",
+      "name": "Focaccia",
+      "desc": "Signature. Fresh croissants, baked daily.",
+      "price": 90
+    },
+    {
+      "id": "sb-doublechocflat",
+      "cat": "sweetbakeries",
+      "name": "Double Chocolate Flat Croissant",
+      "desc": "Filled and finished, straight from the oven.",
+      "price": 95
+    },
+    {
+      "id": "sb-pistachioflat",
+      "cat": "sweetbakeries",
+      "name": "Pistachio Flat Croissant",
+      "desc": "Filled and finished, straight from the oven.",
+      "price": 100
+    },
+    {
+      "id": "sb-doublechocsupreme",
+      "cat": "sweetbakeries",
+      "name": "Double Chocolate Supreme",
+      "desc": "Filled and finished, straight from the oven.",
+      "price": 110
+    },
+    {
+      "id": "sb-pistachiosupreme",
+      "cat": "sweetbakeries",
+      "name": "Pistachio Supreme",
+      "desc": "Filled and finished, straight from the oven.",
+      "price": 115
+    },
+    {
+      "id": "sb-sigsupreme",
+      "cat": "sweetbakeries",
+      "name": "Signature Supreme",
+      "desc": "Filled and finished, straight from the oven.",
+      "price": 120
+    },
+    {
+      "id": "sb-painauchocolate",
+      "cat": "sweetbakeries",
+      "name": "Pain Au Chocolate",
+      "desc": "Filled and finished, straight from the oven.",
+      "price": 75
+    },
+    {
+      "id": "sb-painsuisse",
+      "cat": "sweetbakeries",
+      "name": "Pain Suisse",
+      "desc": "Filled and finished, straight from the oven.",
+      "price": 75
+    },
+    {
+      "id": "sb-mixedberriestart",
+      "cat": "sweetbakeries",
+      "name": "Mixed Berries Tart",
+      "desc": "Filled and finished, straight from the oven.",
+      "price": 120
+    },
+    {
+      "id": "pa-doublechoccookiepie",
+      "cat": "pastries",
+      "name": "Double Chocolate Cookie Pie",
+      "desc": "Cookies and cakes, baked in-house.",
+      "price": 90
+    },
+    {
+      "id": "pa-pistachiocookiepie",
+      "cat": "pastries",
+      "name": "Pistachio Cookie Pie",
+      "desc": "Cookies and cakes, baked in-house.",
+      "price": 95
+    },
+    {
+      "id": "pa-hazelnutcremecookiepie",
+      "cat": "pastries",
+      "name": "Hazelnut Creme Cookie Pie",
+      "desc": "Cookies and cakes, baked in-house.",
+      "price": 95
+    },
+    {
+      "id": "pa-doublechoccookies",
+      "cat": "pastries",
+      "name": "Double Chocolate Cookies",
+      "desc": "Cookies and cakes, baked in-house.",
+      "price": 55
+    },
+    {
+      "id": "pa-chocchipcookies",
+      "cat": "pastries",
+      "name": "Chocolate Chips Cookies",
+      "desc": "Cookies and cakes, baked in-house.",
+      "price": 50
+    },
+    {
+      "id": "pa-doublechoccake",
+      "cat": "pastries",
+      "name": "Double Chocolate Cake",
+      "desc": "Cookies and cakes, baked in-house.",
+      "price": 150
+    },
+    {
+      "id": "sg-classictiramisu",
+      "cat": "sigdesserts",
+      "name": "Classic Tiramisu",
+      "desc": "House specialties from the pastry case.",
+      "price": 140
+    },
+    {
+      "id": "sg-chocolatetiramisu",
+      "cat": "sigdesserts",
+      "name": "Chocolate Tiramisu",
+      "desc": "House specialties from the pastry case.",
+      "price": 145
+    },
+    {
+      "id": "sg-darkcherrymousse",
+      "cat": "sigdesserts",
+      "name": "Dark Belgium Cherry Mousse",
+      "desc": "House specialties from the pastry case.",
+      "price": 150
+    },
+    {
+      "id": "sg-lemontart",
+      "cat": "sigdesserts",
+      "name": "Lemon Tart",
+      "desc": "House specialties from the pastry case.",
+      "price": 130
+    },
+    {
+      "id": "sg-eclair",
+      "cat": "sigdesserts",
+      "name": "E'clair",
+      "desc": "House specialties from the pastry case.",
+      "price": 90
+    },
+    {
+      "id": "sg-matchacookies",
+      "cat": "sigdesserts",
+      "name": "Matcha Cookies",
+      "desc": "House specialties from the pastry case.",
+      "price": 60
+    },
+    {
+      "id": "sg-sansebastian",
+      "cat": "sigdesserts",
+      "name": "San Sebastian",
+      "desc": "House specialties from the pastry case.",
+      "price": 160
+    },
+    {
+      "id": "sl-chickencaesar",
+      "cat": "salads",
+      "name": "Chicken Ceaser Salad",
+      "desc": "Fresh and hearty, for the health-conscious.",
+      "price": 160
+    },
+    {
+      "id": "sl-cajunbbq",
+      "cat": "salads",
+      "name": "Cajun BBQ Chicken Salad",
+      "desc": "Fresh and hearty, for the health-conscious.",
+      "price": 170
+    },
+    {
+      "id": "sl-western",
+      "cat": "salads",
+      "name": "Western Salad",
+      "desc": "Fresh and hearty, for the health-conscious.",
+      "price": 150
+    },
+    {
+      "id": "sl-omega3",
+      "cat": "salads",
+      "name": "Omega 3",
+      "desc": "Fresh and hearty, for the health-conscious.",
+      "price": 175
+    }
+  ],
+  "DRINK_CATS": [
+    "black",
+    "classic",
+    "iced",
+    "speciality",
+    "sigdrinks",
+    "noncoffee",
+    "frappe",
+    "matcha",
+    "shakes",
+    "smoothies",
+    "mojito"
+  ],
+  "MILK_OPTIONS": [
+    {
+      "id": "none",
+      "name": "No Milk",
+      "price": 0
+    },
+    {
+      "id": "full",
+      "name": "Full Cream Milk",
+      "price": 0
+    },
+    {
+      "id": "skimmed",
+      "name": "Skimmed Milk",
+      "price": 0
+    },
+    {
+      "id": "oat",
+      "name": "Oat Milk",
+      "price": 40
+    },
+    {
+      "id": "almond",
+      "name": "Almond Milk",
+      "price": 40
+    },
+    {
+      "id": "coconut",
+      "name": "Coconut Milk",
+      "price": 40
+    }
+  ],
+  "SHOT_OPTION": {
+    "id": "espresso",
+    "name": "Espresso Shot",
+    "price": 40
+  },
+  "SYRUP_OPTIONS": [
+    {
+      "id": "sf-saltedcaramel",
+      "name": "Sugar Free Salted Caramel Syrup",
+      "price": 40
+    },
+    {
+      "id": "sf-caramel",
+      "name": "Sugar Free Caramel Syrup",
+      "price": 40
+    },
+    {
+      "id": "sf-vanilla",
+      "name": "Sugar Free Vanilla Syrup",
+      "price": 40
+    },
+    {
+      "id": "sf-hazelnut",
+      "name": "Sugar Free Hazelnut Syrup",
+      "price": 40
+    },
+    {
+      "id": "vanilla",
+      "name": "Vanilla Syrup",
+      "price": 30
+    },
+    {
+      "id": "honey",
+      "name": "Honey Syrup",
+      "price": 30
+    },
+    {
+      "id": "cinnamon",
+      "name": "Cinnamon Syrup",
+      "price": 30
+    },
+    {
+      "id": "caramel",
+      "name": "Caramel Syrup",
+      "price": 30
+    },
+    {
+      "id": "saltedcaramel",
+      "name": "Salted Caramel Syrup",
+      "price": 30
+    },
+    {
+      "id": "whitechoc",
+      "name": "White Chocolate Syrup",
+      "price": 30
+    },
+    {
+      "id": "strawberry",
+      "name": "Strawberry Syrup",
+      "price": 30
+    },
+    {
+      "id": "toffeenut",
+      "name": "Toffee Nut Syrup",
+      "price": 30
+    }
+  ]
+}

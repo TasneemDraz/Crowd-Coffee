@@ -87,57 +87,65 @@ AC: PR triggers build + unit test run; fails the check on red tests.
 
 Goal: settle every entity from §6/§4a, seed real menu data, get EF Core migrations working. Highest-risk epic alongside Epic 3.
 
-### Story 2.1 — Catalog entities
+### Story 2.1 — Catalog entities ✅
 AC: `Category`, `Product`, `ModifierGroup`, `ModifierOption`, `ProductModifierGroup` per §6/§4a; unique indexes on slugs.
-- [ ] T2.1.1 `Category` entity + EF configuration
-- [ ] T2.1.2 `Product` entity + EF configuration
-- [ ] T2.1.3 `ModifierGroup` entity (SelectionType, MaxSelections, IsRequired, DisplayOrder)
-- [ ] T2.1.4 `ModifierOption` entity (Slug, PriceDelta, IsActive, DisplayOrder)
-- [ ] T2.1.5 `ProductModifierGroup` join (category-wide for v1)
-- [ ] T2.1.6 Unique indexes on `Product.Slug`, `Category.Slug`
+- [x] T2.1.1 `Category` entity + EF configuration
+- [x] T2.1.2 `Product` entity + EF configuration
+- [x] T2.1.3 `ModifierGroup` entity (SelectionType, MaxSelections, IsRequired, DisplayOrder)
+- [x] T2.1.4 `ModifierOption` entity (Slug, PriceDelta, IsActive, DisplayOrder)
+- [x] T2.1.5 `ProductModifierGroup` join (category-wide for v1)
+- [x] T2.1.6 Unique indexes on `Product.Slug`, `Category.Slug`
 - Size: M
+- Delivered: `Category.Slug` is an EF alternate key (not just a unique index) since `Product.CategorySlug` and `ProductModifierGroup.CategorySlug` both FK against it. `ModifierOption.Slug` is unique **per group**, not globally — §4a's syrup list has the same name (e.g. "Vanilla") appearing at two different price points (sugar-free vs. regular), so a global unique slug would collide; will confirm the exact slug scheme against `Menu.html` in Story 2.5.
 
-### Story 2.2 — Ordering entities
+### Story 2.2 — Ordering entities ✅
 AC: `Order`, `OrderItem`, `OrderItemModifier`, `OrderStatusHistory`; `OrderNumber` separate from PK; money `decimal(18,2)`; timestamps UTC.
-- [ ] T2.2.1 `Order` entity + EF configuration
-- [ ] T2.2.2 `OrderItem` entity with snapshot fields (ProductName, UnitPrice)
-- [ ] T2.2.3 `OrderItemModifier` entity with snapshot fields (ModifierName, PriceDelta)
-- [ ] T2.2.4 `OrderStatusHistory` entity
-- [ ] T2.2.5 Unique constraint on `OrderNumber`
+- [x] T2.2.1 `Order` entity + EF configuration
+- [x] T2.2.2 `OrderItem` entity with snapshot fields (ProductName, UnitPrice)
+- [x] T2.2.3 `OrderItemModifier` entity with snapshot fields (ModifierName, PriceDelta)
+- [x] T2.2.4 `OrderStatusHistory` entity
+- [x] T2.2.5 Unique constraint on `OrderNumber`
 - Size: M · Depends on: 2.1
+- Delivered: `Order` is deliberately schema-only right now — no public constructor, `Status`/etc. are private-set. Epic 3 owns the `CreateCash`/`CreatePendingPayment` factories and the `TransitionTo` method that mutate this class; adding them here would preempt Story 3.2's design. `OrderStatus` enum lives in `Domain/Ordering/OrderEnums.cs` since the schema needs the type now, even though the transition graph itself is Epic 3's job. Also unique-indexed `IdempotencyKey` (needed by Story 9.3, cheap to add now while touching this table). Enums stored as `string` columns (not `int`) for DB readability during manual inspection/debugging.
 
-### Story 2.3 — Inventory entities
+### Story 2.3 — Inventory entities ✅
 AC: `StockItem`, `Recipe` (linking Product and ModifierOption), `StockMovement` as append-only ledger.
-- [ ] T2.3.1 `StockItem` entity + EF configuration
-- [ ] T2.3.2 `Recipe` entity linking to `Product`
-- [ ] T2.3.3 `Recipe` linking to `ModifierOption` (§4a rule 5)
-- [ ] T2.3.4 `StockMovement` entity, signed `Quantity`, `MovementType` enum
-- [ ] T2.3.5 Composite index `(StockItemId, CreatedAt)`
-- [ ] T2.3.6 Ensure Infrastructure exposes no update path for `StockMovement` rows (append-only by design)
+- [x] T2.3.1 `StockItem` entity + EF configuration
+- [x] T2.3.2 `Recipe` entity linking to `Product`
+- [x] T2.3.3 `Recipe` linking to `ModifierOption` (§4a rule 5)
+- [x] T2.3.4 `StockMovement` entity, signed `Quantity`, `MovementType` enum
+- [x] T2.3.5 Composite index `(StockItemId, CreatedAt)`
+- [x] T2.3.6 Ensure Infrastructure exposes no update path for `StockMovement` rows (append-only by design)
 - Size: M · Depends on: 2.1
+- Delivered: `Recipe.ProductId`/`ModifierOptionId` are both nullable with a DB-level `CHECK` constraint (`CK_Recipes_ExactlyOneOwner`) enforcing exactly one is set — factory methods `Recipe.ForProduct(...)`/`Recipe.ForModifierOption(...)` enforce the same invariant in code, so it's caught at construction time, not just at the DB. `StockMovement` has no update-capable API surface (private setters, no mutator methods) — append-only is structural, not just documented convention.
 
-### Story 2.4 — Staff entities
+### Story 2.4 — Staff entities ✅
 AC: `StaffUser` with `Role` enum (Manager|Barista).
-- [ ] T2.4.1 `StaffUser` entity + EF configuration
-- [ ] T2.4.2 Size password hash column for the algorithm chosen in Epic 11
+- [x] T2.4.1 `StaffUser` entity + EF configuration
+- [x] T2.4.2 Size password hash column for the algorithm chosen in Epic 11
 - Size: S
+- Delivered: `PasswordHash` sized `nvarchar(200)` — comfortably covers both BCrypt (~60 chars) and Argon2 (~100 chars) encoded hashes, so Epic 11's algorithm choice won't require a schema change.
 
-### Story 2.5 — Menu seed migration
+### Story 2.5 — Menu seed migration ✅
 AC: 19 categories, 161 products, modifier groups/options extracted programmatically from `Menu.html` — not retyped. Missing `cheesecakes` description handled gracefully.
-- [ ] T2.5.1 Write extraction script/parser for `Menu.html`'s `CATEGORIES`, `D`, `ITEMS`
-- [ ] T2.5.2 Extract `MILK_OPTIONS`, `SHOT_OPTION`, `SYRUP_OPTIONS`, `DRINK_CATS`
-- [ ] T2.5.3 Handle missing `cheesecakes` description (18 keys in `D` vs. 19 categories) without crashing
-- [ ] T2.5.4 Emit seed migration / EF data seeding from extracted data
-- [ ] T2.5.5 Verify seeded counts: 19 categories, 161 products
-- [ ] T2.5.6 Flag recipe *quantities* (grams/ml per drink) as TBD business data — not in design files, structural seed only
+- [x] T2.5.1 Write extraction script/parser for `Menu.html`'s `CATEGORIES`, `D`, `ITEMS`
+- [x] T2.5.2 Extract `MILK_OPTIONS`, `SHOT_OPTION`, `SYRUP_OPTIONS`, `DRINK_CATS`
+- [x] T2.5.3 Handle missing `cheesecakes` description (18 keys in `D` vs. 19 categories) without crashing
+- [x] T2.5.4 Emit seed migration / EF data seeding from extracted data
+- [x] T2.5.5 Verify seeded counts: 19 categories, 161 products
+- [x] T2.5.6 Flag recipe *quantities* (grams/ml per drink) as TBD business data — not in design files, structural seed only
 - Size: M · Depends on: 2.1, 2.3
+- Delivered: located the actual `Menu.html` at `C:\Users\Administrator\Downloads\Menu.html` (the file itself is a bundler-wrapped export — the real page script is gzip+base64 inside a `__bundler/manifest` JSON blob, and the `CATEGORIES`/`D`/`ITEMS`/modifier data live inside a separate `__bundler/template` JSON-escaped blob). Decoded both layers with a throwaway Node script (not committed — lived in the session scratchpad only), then used Node's `vm` module to actually *execute* the extracted JS so `D.category` references and string concatenation (e.g. `'Signature. ' + D.breakfast`) resolved to final literal strings rather than being hand-parsed. Resulting JSON is committed at `server/src/CrowdCoffee.Infrastructure/Persistence/Seed/menu-seed.json` (embedded resource), loaded by `MenuSeedData.cs`, wired into `CrowdCoffeeDbContext.OnModelCreating` via `HasData(...)` with deterministic Guids (`DeterministicGuid.cs`, MD5-hashed stable strings) so migration regeneration doesn't churn every row. Verified against the real DB after `dotnet ef database update`: 19 Categories, 161 Products, 3 ModifierGroups, 19 ModifierOptions (6 milk + 1 shot + 12 syrup), 33 ProductModifierGroups (11 drink categories × 3 groups) — all exact matches. `cheesecakes` Category row confirmed `Description IS NULL` in the DB, no crash. Recipe/StockItem rows intentionally not seeded — ingredient quantities per drink aren't in the design file.
 
-### Story 2.6 — Rebuild/reconcile command for stock ledger
+### Story 2.6 — Rebuild/reconcile command for stock ledger ✅
 AC: recomputes `QuantityOnHand` from `StockMovement` ledger, reports drift from cached value.
-- [ ] T2.6.1 Application command: recompute on-hand from ledger per `StockItem`
-- [ ] T2.6.2 Report/log drift between recomputed and cached values
-- [ ] T2.6.3 Expose via CLI or admin-only endpoint trigger
+- [x] T2.6.1 Application command: recompute on-hand from ledger per `StockItem`
+- [x] T2.6.2 Report/log drift between recomputed and cached values
+- [x] T2.6.3 Expose via CLI or admin-only endpoint trigger
 - Size: S · Depends on: 2.3
+- Delivered: `ReconcileStockLedgerHandler` (Application) + `IStockLedgerRepository`/`StockLedgerRepository` (Infrastructure) — first real use of the repository-interface pattern (Application defines the port, Infrastructure adapts EF Core to it) that later epics should reuse rather than referencing `CrowdCoffeeDbContext` directly from Application. It doesn't just report — it actually rewrites `QuantityOnHand` to the ledger sum via a new `StockItem.Reconcile(...)` domain method (distinct from Epic 4's future Reserve/Fulfill methods) and logs a warning per drifted item. Exposed at `POST /api/inventory/reconcile-stock-ledger` — **not yet auth-gated** (marked `TODO(Epic 11)` in `InventoryController`, since staff auth doesn't exist yet). Verified live: seeded a StockItem with a deliberately wrong cached value (999) against real ledger movements summing to 4964, called the endpoint, got back the correct drift (3965) in the response, and confirmed in SQL that `QuantityOnHand` was actually rewritten to 4964, not just reported. Test data cleaned up after.
+
+## Epic 2 status: ✅ complete (6/6 stories)
 
 ---
 

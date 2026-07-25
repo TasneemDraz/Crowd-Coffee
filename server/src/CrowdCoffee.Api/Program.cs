@@ -1,9 +1,13 @@
 using CrowdCoffee.Api.Middleware;
 using CrowdCoffee.Application.Diagnostics;
+using CrowdCoffee.Application.Inventory;
 using CrowdCoffee.Infrastructure.Configuration;
+using CrowdCoffee.Infrastructure.Persistence;
+using CrowdCoffee.Infrastructure.Persistence.Repositories;
 using FluentValidation;
 using HealthChecks.UI.Client;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.EntityFrameworkCore;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -19,12 +23,17 @@ builder.Services.Configure<DatabaseOptions>(builder.Configuration.GetSection(Dat
 var connectionString = builder.Configuration.GetSection(DatabaseOptions.SectionName)["ConnectionString"]
     ?? throw new InvalidOperationException("Database:ConnectionString is not configured.");
 
+builder.Services.AddDbContext<CrowdCoffeeDbContext>(options => options.UseSqlServer(connectionString));
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 builder.Services.AddValidatorsFromAssemblyContaining<EchoRequestValidator>();
 builder.Services.AddScoped<EchoHandler>();
+
+builder.Services.AddScoped<IStockLedgerRepository, StockLedgerRepository>();
+builder.Services.AddScoped<ReconcileStockLedgerHandler>();
 
 builder.Services.AddHealthChecks()
     .AddSqlServer(connectionString, name: "sql-server");
