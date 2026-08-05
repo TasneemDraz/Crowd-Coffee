@@ -12,6 +12,12 @@ public class AvailabilityRepository(CrowdCoffeeDbContext dbContext) : IAvailabil
     public async Task<IReadOnlyList<Recipe>> GetRecipesForModifierOptionAsync(Guid modifierOptionId, CancellationToken cancellationToken) =>
         await dbContext.Recipes.Where(r => r.ModifierOptionId == modifierOptionId).ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<Recipe>> GetRecipesForProductsAsync(IReadOnlyCollection<Guid> productIds, CancellationToken cancellationToken) =>
+        await dbContext.Recipes.Where(r => r.ProductId != null && productIds.Contains(r.ProductId!.Value)).ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<Recipe>> GetRecipesForModifierOptionsAsync(IReadOnlyCollection<Guid> modifierOptionIds, CancellationToken cancellationToken) =>
+        await dbContext.Recipes.Where(r => r.ModifierOptionId != null && modifierOptionIds.Contains(r.ModifierOptionId!.Value)).ToListAsync(cancellationToken);
+
     public async Task<IReadOnlyDictionary<Guid, StockItem>> GetStockItemsByIdAsync(IReadOnlyCollection<Guid> stockItemIds, CancellationToken cancellationToken)
     {
         var stockItems = await dbContext.StockItems.Where(s => stockItemIds.Contains(s.Id)).ToListAsync(cancellationToken);

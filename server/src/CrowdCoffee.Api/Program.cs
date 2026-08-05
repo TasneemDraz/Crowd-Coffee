@@ -1,4 +1,5 @@
 using CrowdCoffee.Api.Middleware;
+using CrowdCoffee.Application.Catalog;
 using CrowdCoffee.Application.Common;
 using CrowdCoffee.Application.Diagnostics;
 using CrowdCoffee.Application.Inventory;
@@ -6,6 +7,7 @@ using CrowdCoffee.Application.Ordering;
 using CrowdCoffee.Domain.Ordering;
 using CrowdCoffee.Infrastructure.Configuration;
 using CrowdCoffee.Infrastructure.Persistence;
+using CrowdCoffee.Infrastructure.Persistence.Caching;
 using CrowdCoffee.Infrastructure.Persistence.Repositories;
 using FluentValidation;
 using HealthChecks.UI.Client;
@@ -53,6 +55,14 @@ builder.Services.AddScoped<RecordPurchaseHandler>();
 builder.Services.AddScoped<RecordWasteHandler>();
 builder.Services.AddScoped<RecordAdjustmentHandler>();
 builder.Services.AddScoped<GetLowStockItemsHandler>();
+
+builder.Services.AddMemoryCache();
+builder.Services.AddSingleton<ICatalogCache, MemoryCatalogCache>();
+
+builder.Services.AddScoped<ICatalogRepository, CatalogRepository>();
+builder.Services.AddScoped<GetCategoriesHandler>();
+builder.Services.AddScoped<GetProductsHandler>();
+builder.Services.AddScoped<GetProductModifiersHandler>();
 
 builder.Services.AddHealthChecks()
     .AddSqlServer(connectionString, name: "sql-server");
