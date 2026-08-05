@@ -3,15 +3,29 @@ import { computed, onMounted, ref } from 'vue';
 import { RouterLink } from 'vue-router';
 import { useCatalog } from '../composables/useCatalog';
 import { useSimpleCart } from '../composables/useSimpleCart';
+import type { SimpleCartLine } from '../composables/useSimpleCart';
 import CategoryChips from '../components/menu/CategoryChips.vue';
 import ProductCard from '../components/menu/ProductCard.vue';
 import CartBar from '../components/menu/CartBar.vue';
+import DrinkCustomizeModal from '../components/menu/DrinkCustomizeModal.vue';
 import type { ProductDto } from '../types/catalog';
 
+// §4a: only these category slugs get the customization modal; everything else (sandwiches,
+// breakfast, bakery, sweetbakeries, pastries, sigdesserts, cheesecakes, salads) bypasses it and
+// adds straight to cart at base price. Mirrors the design's own DRINK_CATS constant — the DB
+// encodes the same fact structurally (only these categories have ProductModifierGroup rows via
+// the Epic 2 seed), this list is just the fast client-side gate so Add doesn't need a network
+// round-trip to decide whether to open the modal.
+const DRINK_CATS = [
+  'black', 'classic', 'iced', 'speciality', 'sigdrinks',
+  'noncoffee', 'frappe', 'matcha', 'shakes', 'smoothies', 'mojito',
+];
+
 const { categories, products, isLoading, error, ensureLoaded } = useCatalog();
-const { add, count, subtotal } = useSimpleCart();
+const { add, addLine, count, subtotal } = useSimpleCart();
 
 const activeSlug = ref('');
+const modalProduct = ref<ProductDto | null>(null);
 
 onMounted(async () => {
   await ensureLoaded();
@@ -22,10 +36,21 @@ onMounted(async () => {
 
 const visibleProducts = computed(() => products.value.filter((p) => p.categorySlug === activeSlug.value));
 
+const modalCategoryLabel = computed(
+  () => categories.value.find((c) => c.slug === modalProduct.value?.categorySlug)?.label ?? '',
+);
+
 function handleAdd(product: ProductDto) {
-  // TODO(Epic 7): drink categories (DRINK_CATS) should open the customization modal instead of
-  // adding directly — every category bypasses it for now since the modal doesn't exist yet.
-  add(product);
+  if (DRINK_CATS.includes(product.categorySlug)) {
+    modalProduct.value = product;
+  } else {
+    add(product);
+  }
+}
+
+function handleModalConfirm(line: SimpleCartLine) {
+  addLine(line);
+  modalProduct.value = null;
 }
 </script>
 
@@ -56,6 +81,14 @@ function handleAdd(product: ProductDto) {
     </template>
 
     <CartBar :count="count" :subtotal="subtotal" />
+
+    <DrinkCustomizeModal
+      v-if="modalProduct"
+      :product="modalProduct"
+      :category-label="modalCategoryLabel"
+      @close="modalProduct = null"
+      @confirm="handleModalConfirm"
+    />
   </div>
 </template>
 

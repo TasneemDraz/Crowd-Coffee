@@ -326,26 +326,31 @@ AC: Lighthouse mobile performance ≥ 85.
 
 Goal: reproduce §4a exactly.
 
-### Story 7.1 — Modal UI: milk/shot/syrup groups
+### Story 7.1 — Modal UI: milk/shot/syrup groups ✅
 AC: Milk required (incl. "No Milk" as valid explicit choice, no null fallthrough); Shot optional single-select; Syrups max 2; independent qty stepper (min 1).
-- [ ] T7.1.1 Modal component shell
-- [ ] T7.1.2 Milk Type group (single-select, required, Add disabled until chosen)
-- [ ] T7.1.3 Espresso Shot group (optional single-select)
-- [ ] T7.1.4 Syrups group (max 2 enforced client-side)
-- [ ] T7.1.5 Modal-local qty stepper (min 1, independent of cart stepper)
+- [x] T7.1.1 Modal component shell
+- [x] T7.1.2 Milk Type group (single-select, required, Add disabled until chosen)
+- [x] T7.1.3 Espresso Shot group (optional single-select)
+- [x] T7.1.4 Syrups group (max 2 enforced client-side)
+- [x] T7.1.5 Modal-local qty stepper (min 1, independent of cart stepper)
 - Size: L · Depends on: 5.2, 6.1
+- Delivered: decoded the actual modal markup/behavior from the real `Menu.html` (the bundler-wrapped file at `Downloads/Menu.html`, same file Epic 2.5 extracted seed data from) — same gzip+base64 `__bundler/manifest`/`__bundler/template` decode technique, this time pulled apart with a throwaway Node script to recover the page's real inline `<script type="text/x-dc">` component, which is where the modal's actual JSX-like markup and `Component` class logic live (not in Menu.dc.html, which the PRD already flags as the modal-less earlier version). `DrinkCustomizeModal.vue` reproduces the bottom-sheet layout, colors, and radio/checkbox indicator styling from that decoded markup exactly. One deliberate behavior addition beyond the static mock: each option is disabled/greyed when `option.isAvailable` is false — the mock has no real inventory to react to, but §4a rule 5 explicitly wants "when oat milk runs out, that single option greys out while the rest of the drink stays orderable," and Epic 5's `/products/{slug}/modifiers` endpoint already computes this live from stock, so the modal wires it in rather than leaving it unused. Milk/shot/syrup data comes from that real endpoint (`useModifiers` composable, cached per category slug since groups are category-wide) — not re-hardcoded as static arrays the way the design mock's own JS does, since the whole point of Epic 5 was making this backend-driven. Verified live end-to-end in Chrome: opening "Espresso," selecting Oat Milk enables Add and recomputes the total live, "No Milk" behaves as a real selectable option rather than a fallthrough default, and unavailable options (none in the current zero-recipe seed data) would render disabled via the same `:disabled` binding used for the max-2-syrups cap.
 
-### Story 7.2 — Live pricing
+### Story 7.2 — Live pricing ✅
 AC: `unitPrice = base + milk + shot + Σsyrups`; `lineTotal = unitPrice × modalQty`, live-updating.
-- [ ] T7.2.1 Reactive price computation (Pinia getter/computed)
-- [ ] T7.2.2 Display note/comment that this value is display-only (server re-prices)
+- [x] T7.2.1 Reactive price computation (Pinia getter/computed)
+- [x] T7.2.2 Display note/comment that this value is display-only (server re-prices)
 - Size: S · Depends on: 7.1
-- Note (§14.3): confirm surcharges are uniform across drink categories before hardcoding a single price table.
+- Note (§14.3): confirm surcharges are uniform across drink categories before hardcoding a single price table. **Resolved** — Epic 2's seed data already encodes this as a structural fact, not a per-category price table: `ProductModifierGroup` attaches the same 3 groups (milk/shot/syrups) to all 11 `DRINK_CATS` categories uniformly, with one shared `ModifierOption` price list (verified live against the real seeded DB in Epic 5: 40 EGP alt-milk, 40 EGP sugar-free syrups, 30 EGP regular syrups, identical regardless of which drink category the product belongs to).
+- Delivered: took plain Vue `computed()` over Pinia — the task's own AC just says "reactive price computation," and the modal's milk/shot/syrup/qty selections are ephemeral, modal-local UI state with no reason to live in shared app state; Epic 8 is where Pinia earns its place (the cart, which genuinely is shared across the app). `unitPrice`/`lineTotal` are computed refs in `DrinkCustomizeModal.vue`, confirmed live-updating against every selection change during manual verification (adding oat milk, a shot, and a syrup recomputed 70 → 190 EGP instantly, ×2 qty → 380 EGP). T7.2.2's "display-only" note is a source comment directly on the `unitPrice` computed (not new UI copy not in the mock — the design doesn't show a disclaimer, so none was added) referencing §4a rule 3 and pointing at Epic 9 as the real re-pricing authority.
 
-### Story 7.3 — Non-drink categories bypass the modal
+### Story 7.3 — Non-drink categories bypass the modal ✅
 AC: food categories add straight to cart at base price.
-- [ ] T7.3.1 `DRINK_CATS` membership check gating modal vs. direct-add
+- [x] T7.3.1 `DRINK_CATS` membership check gating modal vs. direct-add
 - Size: S · Depends on: 7.1
+- Delivered: `MenuView.vue` hardcodes the same 11-slug `DRINK_CATS` list §4a specifies (mirroring the design's own constant) as a fast client-side gate in `handleAdd` — checking via the real `/modifiers` endpoint first would cost a network round-trip on every food-item Add just to learn "no groups," so the static list stays the practical choice; the DB's `ProductModifierGroup` rows remain the actual source of truth for which categories get modifiers, this list just mirrors that fact for a synchronous UI decision. Verified live: Add on a Sandwiches-category item ("Roastbeef") pushed straight into the cart with no modal, while every `DRINK_CATS` category opens `DrinkCustomizeModal`.
+
+## Epic 7 status: ✅ complete (3/3 stories)
 
 ---
 

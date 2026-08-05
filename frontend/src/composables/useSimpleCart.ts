@@ -3,7 +3,7 @@ import type { ProductDto } from '../types/catalog';
 
 const CART_STORAGE_KEY = 'crowdcoffee_cart';
 
-interface SimpleCartLine {
+export interface SimpleCartLine {
   id: string;
   name: string;
   price: number;
@@ -27,27 +27,31 @@ function persist() {
 
 /**
  * Minimal localStorage cart (§3: key `crowdcoffee_cart`) so the menu page's Add button and
- * floating cart bar are functional and match the design now, ahead of Epic 8. Deliberately NOT
- * the modifier-aware composed-line-identity cart Story 8.1 builds
- * (`{productId}::{milkId}::{shot|noshot}::{syrups}`) — that scheme only makes sense once Epic
- * 7's customization modal exists to produce milk/shot/syrup selections. Every product's Add
- * currently goes straight to cart at base price; Epic 7 will intercept DRINK_CATS products to
- * open the modal instead (Story 7.3), and Epic 8 replaces this composable's storage shape,
- * reusing the same localStorage key.
+ * floating cart bar are functional and match the design now, ahead of Epic 8's Pinia store.
+ * `addLine` is the general path — Epic 7's customization modal composes its own
+ * `{productId}::{milkId}::{shot|noshot}::{syrups}` id (see `lib/cartLineId.ts`) and pushes the
+ * resulting line straight through it, exactly mirroring how the design's own `handleAdd` and
+ * `confirmAddModal` share one push-into-cart-array code path. `add` is the thin non-drink-path
+ * convenience wrapper (product id/name/price as-is, qty 1). Epic 8 replaces this composable's
+ * storage shape wholesale but keeps the same localStorage key.
  */
 export function useSimpleCart() {
-  function add(product: ProductDto) {
-    const existing = lines.value.find((line) => line.id === product.id);
+  function addLine(line: SimpleCartLine) {
+    const existing = lines.value.find((l) => l.id === line.id);
     if (existing) {
-      existing.qty += 1;
+      existing.qty += line.qty;
     } else {
-      lines.value.push({ id: product.id, name: product.name, price: product.price, qty: 1 });
+      lines.value.push({ ...line });
     }
     persist();
+  }
+
+  function add(product: ProductDto) {
+    addLine({ id: product.id, name: product.name, price: product.price, qty: 1 });
   }
 
   const count = computed(() => lines.value.reduce((sum, line) => sum + line.qty, 0));
   const subtotal = computed(() => lines.value.reduce((sum, line) => sum + line.price * line.qty, 0));
 
-  return { lines, add, count, subtotal };
+  return { lines, add, addLine, count, subtotal };
 }
