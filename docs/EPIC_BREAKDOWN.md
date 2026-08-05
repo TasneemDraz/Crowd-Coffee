@@ -195,46 +195,55 @@ AC: every legal edge tested positive, every illegal edge tested negative; cash v
 
 Goal: ingredient-level stock, reservation, auto-availability (§8).
 
-### Story 4.1 — Reservation flow
+### Story 4.1 — Reservation flow ✅
 AC: `Available = QuantityOnHand − QuantityReserved`; reservation on `Confirmed` only, never `Pending`.
-- [ ] T4.1.1 `IStockReservationService` with `Reserve`, `ReleaseReservation`, `Fulfill`
-- [ ] T4.1.2 Subscribe to `OrderCancelled` to auto-release reservations
-- [ ] T4.1.3 Ensure reservation writes no ledger row (only `Fulfill` does)
+- [x] T4.1.1 `IStockReservationService` with `Reserve`, `ReleaseReservation`, `Fulfill`
+- [x] T4.1.2 Subscribe to `OrderCancelled` to auto-release reservations
+- [x] T4.1.3 Ensure reservation writes no ledger row (only `Fulfill` does)
 - Size: M · Depends on: 2.3, 3.3
+- Delivered: `StockItem.Reserve`/`ReleaseReservation`/`Fulfill` (Domain) + `StockReservationService` (Application), calling through `IOrderStockRequirementRepository` (walks `Order.Items`/`Modifiers` → `Recipe` → `StockItem`, summed per `StockItemId`) and `IStockRepository`. `ReserveForOrderAsync` is a two-pass check-then-commit — validates every ingredient's `Available` before reserving any, so a multi-ingredient order never leaves a partial reservation on failure. `ReleaseStockOnOrderCancelledHandler` (`IDomainEventHandler<OrderCancelledEvent>`) wires §8's auto-release through the real Epic 3.3 dispatch pipeline, not a direct call — proven by an integration test that drives an actual `Order.TransitionTo(Cancelled)` + `SaveChangesAsync` against local SQL Server and asserts the reservation clears. `Reserve` writes no `StockMovement` row (only `Fulfill` does, per AC).
+- **Bug found & fixed while verifying**: `Order.TransitionTo` appends a new `OrderStatusHistory` to a collection navigation that's typically not `Include()`'d (callers only need to append, not read history). Because `OrderStatusHistory.Id` is a client-generated Guid, EF Core's fixup can't tell "brand new" from "existing row nobody queried yet" from the key value alone, and tracked the new row as `Modified` — emitting an `UPDATE` against a PK that was never inserted, throwing `DbUpdateConcurrencyException` (0 rows affected). This would have hit *every* future transition call site (checkout, kitchen board), not just tests. Fixed centrally in `CrowdCoffeeDbContext.SaveChangesAsync` (`FixUpNewAppendOnlyChildren`): any `OrderStatusHistory` entry in `Modified` state gets forced back to `Added` — safe because the type has no mutator methods, so `Modified` can only ever mean this misclassification, never a real edit.
 
-### Story 4.2 — Sale movement on order completion
+### Story 4.2 — Sale movement on order completion ✅
 AC: on `Delivered`/`PickedUp`, reservation converts to `Sale` movement, `QuantityOnHand` decrements, idempotent per order line.
-- [ ] T4.2.1 Wire `Fulfill` to the completion transition
-- [ ] T4.2.2 Write `Sale` `StockMovement` per ingredient consumed
-- [ ] T4.2.3 Guard against double-fulfillment of the same order
+- [x] T4.2.1 Wire `Fulfill` to the completion transition
+- [x] T4.2.2 Write `Sale` `StockMovement` per ingredient consumed
+- [x] T4.2.3 Guard against double-fulfillment of the same order
 - Size: M · Depends on: 4.1, 3.1
+- Delivered: added `OrderCompletedEvent` (Domain), raised from `Order.TransitionTo` alongside `OrderCancelledEvent` on the `Delivered`/`PickedUp` edges — same "carries only `OrderId`" reasoning as Epic 3.3's event. `FulfillStockOnOrderCompletedHandler` reacts to it and calls `StockReservationService.FulfillForOrderAsync`, mirroring `ReleaseStockOnOrderCancelledHandler`'s pattern exactly, registered in `Program.cs` and the test DI graph. `FulfillForOrderAsync` guards double-fulfillment via `HasMovementForReferenceAsync("Order", orderId, StockMovementType.Sale, ...)` before doing any work — a second call is a no-op. Verified with an integration test that drives a real order through `Confirmed → Preparing → Ready → PickedUp` (four separate `TransitionTo` + `SaveChangesAsync` calls against local SQL Server) and asserts the `Sale` movement and on-hand/reserved deltas land through the event pipeline alone, not a direct method call — plus the existing idempotency test calling `FulfillForOrderAsync` twice directly.
 
-### Story 4.3 — Auto-availability computation
+### Story 4.3 — Auto-availability computation ✅
 AC: product/modifier option unavailable when any recipe ingredient can't cover one unit at current `Available` stock.
-- [ ] T4.3.1 `IAvailabilityService.IsAvailable(productId | modifierOptionId)`
-- [ ] T4.3.2 Decide computed-on-read vs. cached-flag (recommend computed-on-read for v1; revisit if <200ms budget is at risk)
-- [ ] T4.3.3 Unit tests for boundary cases (exactly enough stock, zero stock)
+- [x] T4.3.1 `IAvailabilityService.IsAvailable(productId | modifierOptionId)`
+- [x] T4.3.2 Decide computed-on-read vs. cached-flag (recommend computed-on-read for v1; revisit if <200ms budget is at risk)
+- [x] T4.3.3 Unit tests for boundary cases (exactly enough stock, zero stock)
 - Size: M · Depends on: 4.1
+- Delivered: took `IsProductAvailableAsync(Product)`/`IsModifierOptionAvailableAsync(ModifierOption)` over the sketched `IsAvailable(id)` — callers already have the entity in hand from a catalog query, and passing it in lets the manual-override check (`product.IsAvailable`/`modifierOption.IsActive`) happen without a second lookup. Pure decision logic lives in `AvailabilityCalculator.IsAvailable(recipes, stockItemsById)` (no I/O, fully unit-tested); `AvailabilityService` (Application) does the I/O via `IAvailabilityRepository`. Computed-on-read, no caching yet — matches the recommendation, revisit under Epic 5.3 if the `<200ms` budget is at risk. A product/option with zero `Recipe` rows is treated as available (real per-drink ingredient quantities are still TBD business data per Epic 2.5), not unavailable-by-default. 9 unit tests cover exactly-enough-stock, one-short, zero-stock, multi-ingredient (all sufficient / one insufficient), reserved-stock tipping into unavailable, and a recipe referencing a missing `StockItem`.
 
-### Story 4.4 — Manual availability override
+### Story 4.4 — Manual availability override ✅
 AC: manager's manual `IsAvailable = false` always wins over computed value.
-- [ ] T4.4.1 Combine `Product.IsAvailable && ComputedAvailable` in the read path
+- [x] T4.4.1 Combine `Product.IsAvailable && ComputedAvailable` in the read path
 - Size: S · Depends on: 4.3
+- Delivered: folded into `AvailabilityService` rather than a separate combinator — `IsProductAvailableAsync` short-circuits `false` on `!product.IsAvailable` before ever querying recipes/stock; same short-circuit on `ModifierOption.IsActive`. One read path, can't forget to AND the two together.
 
-### Story 4.5 — Low-stock alerting
+### Story 4.5 — Low-stock alerting ✅
 AC: `StockItem`s below `ReorderPoint` surface on an admin-queryable list.
-- [ ] T4.5.1 Query/service returning items below `ReorderPoint`
-- [ ] T4.5.2 Leave push/email/SMS alert unimplemented pending §14.6 answer; wire list into Epic 14 dashboard only
+- [x] T4.5.1 Query/service returning items below `ReorderPoint`
+- [x] T4.5.2 Leave push/email/SMS alert unimplemented pending §14.6 answer; wire list into Epic 14 dashboard only
 - Size: S · Depends on: 2.3
+- Delivered: `GetLowStockItemsHandler` + `IStockRepository.GetLowStockItemsAsync` (`IsActive && QuantityOnHand < ReorderPoint`), exposed at `GET /api/inventory/low-stock`. Compares `QuantityOnHand`, not `Available` — reads most naturally as a physical-restock signal; flagged in code as open to revisiting against `Available` if the business wants reorder timing to account for stock already committed to pending orders. No push/email/SMS — §14.6 still unanswered, list-only as scoped.
 
-### Story 4.6 — Purchase/waste/adjustment recording
+### Story 4.6 — Purchase/waste/adjustment recording ✅
 AC: purchase increases on-hand, waste/adjustment decrease with mandatory reason — all as ledger entries.
-- [ ] T4.6.1 Application command: record `Purchase` movement
-- [ ] T4.6.2 Application command: record `Waste` movement (mandatory reason)
-- [ ] T4.6.3 Application command: record `Adjustment` movement (mandatory reason)
-- [ ] T4.6.4 Validation enforcing required reason on Waste/Adjustment
+- [x] T4.6.1 Application command: record `Purchase` movement
+- [x] T4.6.2 Application command: record `Waste` movement (mandatory reason)
+- [x] T4.6.3 Application command: record `Adjustment` movement (mandatory reason)
+- [x] T4.6.4 Validation enforcing required reason on Waste/Adjustment
 - Size: M · Depends on: 2.3
 - Note (§14.7): an in-store POS consuming the same stock outside this system would cause ledger drift regardless of this epic's correctness — confirm before go-live.
+- Delivered: `RecordPurchaseHandler`/`RecordWasteHandler`/`RecordAdjustmentHandler`, each with a `FluentValidation` validator (`Waste`/`Adjustment` require a non-empty `Reason`; `Adjustment`'s delta must be non-zero since it's bidirectional, unlike the one-directional Purchase/Waste). Each writes through `StockItem.AdjustOnHand` (guards on-hand never going negative) and appends the matching signed `StockMovement`. Exposed at `POST /api/inventory/stock/{purchase,waste,adjustment}` — same `TODO(Epic 11)` auth gap as the rest of this controller.
+
+## Epic 4 status: ✅ complete (6/6 stories)
 
 ---
 

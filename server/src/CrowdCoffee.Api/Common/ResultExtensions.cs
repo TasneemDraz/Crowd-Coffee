@@ -18,6 +18,19 @@ public static class ResultExtensions
             statusCode: StatusCodeFor(result.Error.Type));
     }
 
+    public static IActionResult ToActionResult(this Result result, ControllerBase controller)
+    {
+        if (result.IsSuccess)
+        {
+            return controller.NoContent();
+        }
+
+        return controller.Problem(
+            title: result.Error!.Code,
+            detail: result.Error.Message,
+            statusCode: StatusCodeFor(result.Error.Type));
+    }
+
     private static int StatusCodeFor(ErrorType type) => type switch
     {
         ErrorType.Validation => StatusCodes.Status400BadRequest,

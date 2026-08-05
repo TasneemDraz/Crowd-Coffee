@@ -171,6 +171,11 @@ public class Order : IHasDomainEvents
             _domainEvents.Add(new OrderCancelledEvent(Id));
         }
 
+        if (newStatus is OrderStatus.Delivered or OrderStatus.PickedUp)
+        {
+            _domainEvents.Add(new OrderCompletedEvent(Id));
+        }
+
         return Result.Success();
     }
 }

@@ -44,6 +44,8 @@ public class CrowdCoffeeDbContext(DbContextOptions<CrowdCoffeeDbContext> options
     /// event that got rolled back would be reacting to something that never happened.
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
+        FixUpNewAppendOnlyChildren();
+
         var entitiesWithEvents = ChangeTracker.Entries<IHasDomainEvents>()
             .Select(e => e.Entity)
             .Where(e => e.DomainEvents.Count > 0)
@@ -60,5 +62,26 @@ public class CrowdCoffeeDbContext(DbContextOptions<CrowdCoffeeDbContext> options
         await domainEventDispatcher.DispatchAsync(domainEvents, cancellationToken);
 
         return result;
+    }
+
+    /// <summary>
+    /// Order.TransitionTo appends a new OrderStatusHistory to a collection navigation that's
+    /// usually not loaded (callers only need to append, not read history), and its Id is a
+    /// client-generated Guid. EF's fixup can't distinguish "brand new" from "existing row nobody
+    /// queried yet" from a non-default key alone, so it tracks the new row as Modified and emits
+    /// an UPDATE against a PK that was never inserted — a DbUpdateConcurrencyException with 0
+    /// rows affected. OrderStatusHistory is append-only by design (no mutator methods exist on
+    /// it), so a Modified entry can only ever be this misclassification, never a real edit —
+    /// safe to force back to Added.
+    /// </summary>
+    private void FixUpNewAppendOnlyChildren()
+    {
+        foreach (var entry in ChangeTracker.Entries<OrderStatusHistory>())
+        {
+            if (entry.State == EntityState.Modified)
+            {
+                entry.State = EntityState.Added;
+            }
+        }
     }
 }

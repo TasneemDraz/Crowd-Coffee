@@ -28,6 +28,8 @@ var connectionString = builder.Configuration.GetSection(DatabaseOptions.SectionN
 
 builder.Services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
 builder.Services.AddScoped<IDomainEventHandler<OrderCancelledEvent>, LoggingOrderCancelledHandler>();
+builder.Services.AddScoped<IDomainEventHandler<OrderCancelledEvent>, ReleaseStockOnOrderCancelledHandler>();
+builder.Services.AddScoped<IDomainEventHandler<OrderCompletedEvent>, FulfillStockOnOrderCompletedHandler>();
 
 builder.Services.AddDbContext<CrowdCoffeeDbContext>(options => options.UseSqlServer(connectionString));
 
@@ -38,8 +40,19 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddValidatorsFromAssemblyContaining<EchoRequestValidator>();
 builder.Services.AddScoped<EchoHandler>();
 
-builder.Services.AddScoped<IStockLedgerRepository, StockLedgerRepository>();
+builder.Services.AddScoped<IStockRepository, StockRepository>();
 builder.Services.AddScoped<ReconcileStockLedgerHandler>();
+
+builder.Services.AddScoped<IAvailabilityRepository, AvailabilityRepository>();
+builder.Services.AddScoped<IAvailabilityService, AvailabilityService>();
+
+builder.Services.AddScoped<IOrderStockRequirementRepository, OrderStockRequirementRepository>();
+builder.Services.AddScoped<StockReservationService>();
+
+builder.Services.AddScoped<RecordPurchaseHandler>();
+builder.Services.AddScoped<RecordWasteHandler>();
+builder.Services.AddScoped<RecordAdjustmentHandler>();
+builder.Services.AddScoped<GetLowStockItemsHandler>();
 
 builder.Services.AddHealthChecks()
     .AddSqlServer(connectionString, name: "sql-server");

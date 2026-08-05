@@ -7,7 +7,7 @@ namespace CrowdCoffee.Application.Inventory;
 /// PRD §6 rule 3: StockMovement is the source of truth, QuantityOnHand is a cached projection.
 /// This recomputes the cache from the ledger for every StockItem and reports (and fixes) drift.
 /// </summary>
-public class ReconcileStockLedgerHandler(IStockLedgerRepository repository, ILogger<ReconcileStockLedgerHandler> logger)
+public class ReconcileStockLedgerHandler(IStockRepository repository, ILogger<ReconcileStockLedgerHandler> logger)
 {
     public async Task<Result<ReconcileReport>> HandleAsync(CancellationToken cancellationToken)
     {
