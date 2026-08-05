@@ -1,3 +1,4 @@
+using CrowdCoffee.Application.Cart;
 using CrowdCoffee.Application.Catalog;
 using CrowdCoffee.Application.Common;
 using CrowdCoffee.Application.Inventory;
@@ -46,6 +47,8 @@ public static class TestServiceProviderFactory
         services.AddScoped<GetCategoriesHandler>();
         services.AddScoped<GetProductsHandler>();
         services.AddScoped<GetProductModifiersHandler>();
+
+        services.AddScoped<RepriceCartHandler>();
 
         return services.BuildServiceProvider();
     }

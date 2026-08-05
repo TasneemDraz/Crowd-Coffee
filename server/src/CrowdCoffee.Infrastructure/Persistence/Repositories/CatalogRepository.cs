@@ -33,6 +33,13 @@ public class CatalogRepository(CrowdCoffeeDbContext dbContext) : ICatalogReposit
             .Select(p => new ProductCatalogRow(p.Id, p.CategorySlug, p.Slug, p.Name, p.Description, p.Price, p.ImageUrl, p.DisplayOrder, p.IsAvailable))
             .FirstOrDefaultAsync(cancellationToken);
 
+    public async Task<ProductCatalogRow?> GetActiveProductByIdAsync(Guid id, CancellationToken cancellationToken) =>
+        await dbContext.Products
+            .AsNoTracking()
+            .Where(p => p.IsActive && p.Id == id)
+            .Select(p => new ProductCatalogRow(p.Id, p.CategorySlug, p.Slug, p.Name, p.Description, p.Price, p.ImageUrl, p.DisplayOrder, p.IsAvailable))
+            .FirstOrDefaultAsync(cancellationToken);
+
     public async Task<IReadOnlyList<ModifierGroupCatalogRow>> GetModifierGroupsForCategoryAsync(string categorySlug, CancellationToken cancellationToken) =>
         await dbContext.ModifierGroups
             .AsNoTracking()

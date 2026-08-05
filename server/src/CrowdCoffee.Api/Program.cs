@@ -1,4 +1,5 @@
 using CrowdCoffee.Api.Middleware;
+using CrowdCoffee.Application.Cart;
 using CrowdCoffee.Application.Catalog;
 using CrowdCoffee.Application.Common;
 using CrowdCoffee.Application.Diagnostics;
@@ -63,6 +64,8 @@ builder.Services.AddScoped<ICatalogRepository, CatalogRepository>();
 builder.Services.AddScoped<GetCategoriesHandler>();
 builder.Services.AddScoped<GetProductsHandler>();
 builder.Services.AddScoped<GetProductModifiersHandler>();
+
+builder.Services.AddScoped<RepriceCartHandler>();
 
 builder.Services.AddHealthChecks()
     .AddSqlServer(connectionString, name: "sql-server");

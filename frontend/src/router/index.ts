@@ -22,11 +22,16 @@ export const router = createRouter({
       component: () => import('../views/MenuView.vue'),
     },
     {
-      // Placeholder so the menu page's cart bar has somewhere to go before Epic 8 builds the
-      // real cart page (Cart.dc.html: line items, qty steppers, delivery/pickup toggle).
       path: '/cart',
       name: 'cart',
-      component: () => import('../views/CartPlaceholderView.vue'),
+      component: () => import('../views/CartView.vue'),
+    },
+    {
+      // Placeholder so the cart page's checkout button has somewhere to go before Epic 9 builds
+      // the real checkout flow (Checkout.dc.html: customer details, location pin, payment method).
+      path: '/checkout',
+      name: 'checkout',
+      component: () => import('../views/CheckoutPlaceholderView.vue'),
     },
   ],
 });

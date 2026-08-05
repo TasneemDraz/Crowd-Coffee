@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 
@@ -13,5 +14,9 @@ export default defineConfig({
         changeOrigin: true,
       },
     },
+  },
+  test: {
+    // jsdom, not the vitest default node environment — the cart store persists to localStorage.
+    environment: 'jsdom',
   },
 })

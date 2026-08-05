@@ -2,8 +2,8 @@
 import { computed, onMounted, ref } from 'vue';
 import { RouterLink } from 'vue-router';
 import { useCatalog } from '../composables/useCatalog';
-import { useSimpleCart } from '../composables/useSimpleCart';
-import type { SimpleCartLine } from '../composables/useSimpleCart';
+import { useCartStore } from '../stores/cart';
+import type { CartLine } from '../stores/cart';
 import CategoryChips from '../components/menu/CategoryChips.vue';
 import ProductCard from '../components/menu/ProductCard.vue';
 import CartBar from '../components/menu/CartBar.vue';
@@ -22,7 +22,7 @@ const DRINK_CATS = [
 ];
 
 const { categories, products, isLoading, error, ensureLoaded } = useCatalog();
-const { add, addLine, count, subtotal } = useSimpleCart();
+const cart = useCartStore();
 
 const activeSlug = ref('');
 const modalProduct = ref<ProductDto | null>(null);
@@ -44,22 +44,22 @@ function handleAdd(product: ProductDto) {
   if (DRINK_CATS.includes(product.categorySlug)) {
     modalProduct.value = product;
   } else {
-    add(product);
+    cart.add(product);
   }
 }
 
-function handleModalConfirm(line: SimpleCartLine) {
-  addLine(line);
+function handleModalConfirm(line: CartLine) {
+  cart.addLine(line);
   modalProduct.value = null;
 }
 </script>
 
 <template>
-  <div class="menu-page" :style="{ paddingBottom: count > 0 ? '110px' : '40px' }">
+  <div class="menu-page" :style="{ paddingBottom: cart.count > 0 ? '110px' : '40px' }">
     <nav class="menu-nav">
       <RouterLink to="/" class="menu-nav__brand">CROWD</RouterLink>
       <div class="menu-nav__actions">
-        <RouterLink to="/cart" class="btn btn--dark btn--sm">Cart · {{ count }}</RouterLink>
+        <RouterLink to="/cart" class="btn btn--dark btn--sm">Cart · {{ cart.count }}</RouterLink>
         <RouterLink to="/" class="menu-nav__home">Home →</RouterLink>
       </div>
     </nav>
@@ -80,7 +80,7 @@ function handleModalConfirm(line: SimpleCartLine) {
       </div>
     </template>
 
-    <CartBar :count="count" :subtotal="subtotal" />
+    <CartBar :count="cart.count" :subtotal="cart.subtotal" />
 
     <DrinkCustomizeModal
       v-if="modalProduct"

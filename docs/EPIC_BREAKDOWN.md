@@ -358,28 +358,33 @@ AC: food categories add straight to cart at base price.
 
 Goal: modifier-aware cart identity (§4a), localStorage persistence (§3), server re-pricing.
 
-### Story 8.1 — Client cart with composed line identity
+### Story 8.1 — Client cart with composed line identity ✅
 AC: id = `{productId}::{milkId}::{shot|noshot}::{sortedSyrupIds joined by "-"}`, syrups sorted before joining; matching ids increment qty.
-- [ ] T8.1.1 Pinia cart store
-- [ ] T8.1.2 Id-composition utility (pure function, unit-testable)
-- [ ] T8.1.3 Unit tests: sorted-syrup collapsing, matching vs. differing lines
-- [ ] T8.1.4 localStorage persistence (`crowdcoffee_cart`, `crowdcoffee_order_mode`)
+- [x] T8.1.1 Pinia cart store
+- [x] T8.1.2 Id-composition utility (pure function, unit-testable)
+- [x] T8.1.3 Unit tests: sorted-syrup collapsing, matching vs. differing lines
+- [x] T8.1.4 localStorage persistence (`crowdcoffee_cart`, `crowdcoffee_order_mode`)
 - Size: M · Depends on: 7.2
+- Delivered: `stores/cart.ts` (`useCartStore`) replaces Epic 6/7's `useSimpleCart` composable now that cart contents + order mode are genuinely shared, mutable state across menu/cart/checkout — the case Pinia is actually for, unlike Epic 5/6's plain fetch-once composables. The id-composition utility (`lib/cartLineId.ts`) already existed from Epic 7 (the modal needed it to compose lines before Epic 8 existed) — reused as-is here rather than rewritten. Added the test runner this story's AC required: **Vitest** (Vite-native, jsdom environment for the store's `localStorage` calls) as the frontend's first test infrastructure — `npm test`. 14 tests total: 6 on `composeDrinkLineId` (sorted-syrup collapsing producing identical ids regardless of submission order, differing milk/shot/syrup/product all producing different ids) and 8 on the store (add/addLine increment-vs-new-line behavior, `localStorage` persistence under both `crowdcoffee_cart` and `crowdcoffee_order_mode` keys, qty-to-zero removal, subtotal/deliveryFee/total getters).
 
-### Story 8.2 — Cart page UI
+### Story 8.2 — Cart page UI ✅
 AC: matches `Cart.dc.html`; delivery 30 EGP flat / pickup free, shown per mode.
-- [ ] T8.2.1 Cart page component (line items, totals)
-- [ ] T8.2.2 Qty stepper component
-- [ ] T8.2.3 Delivery/pickup mode toggle wired to Pinia store
+- [x] T8.2.1 Cart page component (line items, totals)
+- [x] T8.2.2 Qty stepper component
+- [x] T8.2.3 Delivery/pickup mode toggle wired to Pinia store
 - Size: M · Depends on: 8.1
+- Delivered: `CartView.vue` replaces Epic 6's `CartPlaceholderView.vue` at `/cart`, matching `Cart.dc.html` exactly — line items with circular −/+ qty steppers (`CartQtyStepper.vue`, deliberately a different shape from the customization modal's pill stepper since the source design itself draws them differently) and a separate Remove link, `OrderModeToggle.vue` for the Delivery/Pickup buttons (with the pickup note appearing only in pickup mode), and a totals card (Subtotal / Delivery fee-or-Pickup-Free / Total) ending in "Proceed to Checkout." Added a `/checkout` placeholder view (same pattern as Epic 6's now-retired `/cart` placeholder) so the button has somewhere real to go before Epic 9. Verified live in Chrome against lines carried over from Epic 6/7's manual testing: qty stepper decrementing a qty-1 line to zero removed it and updated the subtotal (820 → 655 EGP), switching Delivery → Pickup showed the pickup note and dropped the fee to "Free," and the empty-cart state/"Browse the Menu" path matches the design.
 
-### Story 8.3 — Server-side cart re-pricing endpoint
+### Story 8.3 — Server-side cart re-pricing endpoint ✅
 AC: server recomputes each line from current DB prices/deltas; server-side id composition mirrors client.
-- [ ] T8.3.1 Server-side id-composition logic mirroring the client scheme
-- [ ] T8.3.2 Re-pricing endpoint recomputing line totals from DB
-- [ ] T8.3.3 Validation: exactly one milk, ≤1 shot, ≤2 syrups, options belong to product's attached groups
-- [ ] T8.3.4 Reject requests failing validation (extra syrups, foreign option ids)
+- [x] T8.3.1 Server-side id-composition logic mirroring the client scheme
+- [x] T8.3.2 Re-pricing endpoint recomputing line totals from DB
+- [x] T8.3.3 Validation: exactly one milk, ≤1 shot, ≤2 syrups, options belong to product's attached groups
+- [x] T8.3.4 Reject requests failing validation (extra syrups, foreign option ids)
 - Size: M · Depends on: 5.2, 8.1
+- Delivered: `POST /api/cart/reprice` — `CartLineRepricer` (Application/Cart, pure, no I/O) ports `composeDrinkLineId`'s exact scheme to C# (`StringComparer.Ordinal` for the syrup sort, matching JS's default UTF-16 string sort on GUID strings) and validates milk/shot/syrup option ids against the product's actual attached groups (`ICatalogRepository.GetModifierGroupsForCategoryAsync`, reused from Epic 5 rather than a new query) before recomputing `unitPrice` from the live DB price + deltas. A foreign option id anywhere in a line — or in any line — fails the *entire* request (T8.3.4; no silent per-line dropping). Two validation layers, matching the `InventoryController` precedent: FluentValidation (`CartRepriceRequestValidator`) catches shape violations (empty lines, >2 syrups, non-positive qty) at the boundary before the handler runs; `CartLineRepricer` catches the deeper "does this option genuinely belong to this product" checks that need the loaded DB data. Added `ICatalogRepository.GetActiveProductByIdAsync` (Epic 5's repository only had by-slug; the cart already has product ids in memory from the products list, not slugs). Verified live against the real seeded DB: Espresso Bonbon (95 EGP) + Oat Milk (+40) + Espresso Shot (+40) × qty 2 → 175 EGP/unit, 350 EGP line total, matching manual arithmetic exactly; a syrup option id submitted as the milk option id correctly rejected with `Cart.InvalidMilkOption`; 3 syrups correctly rejected by the FluentValidation layer before ever reaching the repricer.
+
+## Epic 8 status: ✅ complete (3/3 stories)
 
 ---
 

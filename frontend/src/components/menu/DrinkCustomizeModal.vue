@@ -2,11 +2,11 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import type { ModifierGroupDto, ProductDto } from '../../types/catalog';
 import { useModifiers } from '../../composables/useModifiers';
-import type { SimpleCartLine } from '../../composables/useSimpleCart';
+import type { CartLine } from '../../stores/cart';
 import { composeDrinkLineId } from '../../lib/cartLineId';
 
 const props = defineProps<{ product: ProductDto; categoryLabel: string }>();
-const emit = defineEmits<{ close: []; confirm: [line: SimpleCartLine] }>();
+const emit = defineEmits<{ close: []; confirm: [line: CartLine] }>();
 
 const { getForCategory } = useModifiers();
 

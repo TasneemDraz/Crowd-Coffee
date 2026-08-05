@@ -4,9 +4,9 @@ import { RouterLink } from 'vue-router';
 
 <template>
   <div class="placeholder">
-    <h1>Cart</h1>
-    <p>The real cart page (line items, qty steppers, delivery/pickup toggle) lands in Epic 8.</p>
-    <RouterLink to="/menu" class="btn btn--dark">Back to Menu</RouterLink>
+    <h1>Checkout</h1>
+    <p>The real checkout flow (customer details, location pin, payment method) lands in Epic 9.</p>
+    <RouterLink to="/cart" class="btn btn--dark">Back to Cart</RouterLink>
   </div>
 </template>
 
