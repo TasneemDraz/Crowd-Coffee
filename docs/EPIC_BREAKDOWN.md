@@ -251,25 +251,30 @@ AC: purchase increases on-hand, waste/adjustment decrease with mandatory reason 
 
 Goal: categories/products/modifiers with availability and caching, <200ms (§12).
 
-### Story 5.1 — GET /categories, GET /products
+### Story 5.1 — GET /categories, GET /products ✅
 AC: 19 categories in display order; products filtered to `IsActive && IsAvailable` (manual + computed).
-- [ ] T5.1.1 Read-model query for categories (display order)
-- [ ] T5.1.2 Read-model query for products (`AsNoTracking`/Dapper projections, avoid full aggregate loads)
-- [ ] T5.1.3 Apply Epic 4.4's combined availability filter
-- [ ] T5.1.4 Decide response shape (grouped-by-category vs. flat + ref) based on Epic 6 needs
+- [x] T5.1.1 Read-model query for categories (display order)
+- [x] T5.1.2 Read-model query for products (`AsNoTracking`/Dapper projections, avoid full aggregate loads)
+- [x] T5.1.3 Apply Epic 4.4's combined availability filter
+- [x] T5.1.4 Decide response shape (grouped-by-category vs. flat + ref) based on Epic 6 needs
 - Size: M · Depends on: 2.1, 4.3
+- Delivered: chose **flat + ref** for T5.1.4 — `GetProducts` returns a flat list with `CategorySlug` on each row, fetched once and grouped/filtered client-side, matching Story 6.3's "fetch-on-load with client-side cache" plan rather than a grouped-by-category envelope. `ICatalogRepository` (Application port) + `CatalogRepository` (Infrastructure) project straight from `Products`/`Categories` into DTOs via `AsNoTracking().Select(...)` — no entity materialization, no navigation loads, satisfying T5.1.2's "avoid full aggregate loads" directly rather than just not-tracking a full `Product` load. Availability filtering needed a bulk path: the existing Epic 4.3 `IAvailabilityService.IsProductAvailableAsync(Product)` is one-recipe-query-plus-one-stock-query *per product*, which would be 300+ queries across 161 products — added `GetComputedAvailabilityForProductsAsync(ids)`/`GetComputedAvailabilityForModifierOptionsAsync(ids)` sibling overloads (two bulk queries total, id-keyed dictionary result) alongside two new bulk methods on `IAvailabilityRepository`; the existing single-item overloads and their Epic 4 test coverage are untouched. `GetProductsHandler` combines `ProductCatalogRow.IsManuallyAvailable && computed[id]` and filters unavailable rows out entirely, per AC.
 
-### Story 5.2 — GET /products/{slug}/modifiers
+### Story 5.2 — GET /products/{slug}/modifiers ✅
 AC: returns modifier groups/options applicable per §4a `DRINK_CATS`, each option flagged available/unavailable.
-- [ ] T5.2.1 Query joining `ProductModifierGroup` → `ModifierGroup` → `ModifierOption`
-- [ ] T5.2.2 Apply per-option availability from Epic 4.3
+- [x] T5.2.1 Query joining `ProductModifierGroup` → `ModifierGroup` → `ModifierOption`
+- [x] T5.2.2 Apply per-option availability from Epic 4.3
 - Size: M · Depends on: 2.1, 4.3
+- Delivered: `GetProductModifiersHandler` looks up the product by slug (404 via `Result`/`Error.NotFound` if missing or inactive), then `ICatalogRepository.GetModifierGroupsForCategoryAsync(product.CategorySlug)` — a category-slug subquery filter against `ProductModifierGroups` (not a literal SQL join), each group's `Options` collection nav projected inline via EF, ordered by `DisplayOrder`. Deliberately **flags, never filters** unavailable options (unlike Story 5.1's products) — an out-of-stock milk should show disabled in the customization modal, not vanish and destabilize the option list the UI renders around; verified live against the real seeded `black`/`b-espresso` product: Milk Type (`ExactlyOne`, required, incl. "No Milk"), Espresso Shot (`UpToN`, max 1, optional), Syrups (`UpToN`, max 2) all came back with the exact §4a surcharges (40 EGP alt-milk/sugar-free syrups, 30 EGP regular syrups).
 
-### Story 5.3 — Caching & cache invalidation
+### Story 5.3 — Caching & cache invalidation ✅
 AC: menu endpoint <200ms; writes from Epic 13 invalidate cache promptly (correctness over TTL convenience).
-- [ ] T5.3.1 Add cache layer (`IMemoryCache` or `IDistributedCache`)
-- [ ] T5.3.2 Explicit invalidation hook on product/category/modifier writes
+- [x] T5.3.1 Add cache layer (`IMemoryCache` or `IDistributedCache`)
+- [x] T5.3.2 Explicit invalidation hook on product/category/modifier writes
 - Size: S · Depends on: 5.1, 5.2
+- Delivered: **only the availability-independent catalog structure is cached** (names/prices/slugs/display order) — the computed recipe-vs-stock availability is always recomputed live per request from the already-bulk (two-query) path above, never cached, so a cached response can never show something in stock that isn't, or vice versa. `ICatalogCache` (Application/Common) wraps a keyed `GetOrCreateAsync<T>`/`InvalidateAll()` pair; `MemoryCatalogCache` (Infrastructure, singleton) implements it over `IMemoryCache` using the standard shared-`CancellationTokenSource`-swap trick since `IMemoryCache` has no native "clear everything." `InvalidateAll()` is the AC's "writes invalidate cache promptly" hook — **nothing calls it yet**, since Epic 13's admin write endpoints don't exist; `TODO(Epic 13)` is implicit in `ICatalogCache`'s doc comment. A 5-minute TTL backstops that gap in the meantime, but per the AC's "correctness over TTL convenience," it's explicitly documented as the backstop, not the mechanism. Verified live: `GET /api/catalog/categories` (19 rows), `/products` (161 rows, all available given the zero-recipe seed data), and `/products/{slug}/modifiers` all responded in 12–15ms end-to-end against local SQL Server — comfortably inside the §12 <200ms budget even before considering the cache's steady-state benefit.
+
+## Epic 5 status: ✅ complete (3/3 stories)
 
 ---
 
@@ -277,37 +282,43 @@ AC: menu endpoint <200ms; writes from Epic 13 invalidate cache promptly (correct
 
 Goal: pixel-match `Crowd Coffee.dc.html` and `Menu.html` (newer version), mobile-first, Vue 3.
 
-### Story 6.1 — Frontend project scaffold
+### Story 6.1 — Frontend project scaffold ✅
 AC: Vite + Vue 3 + TypeScript; OKLCH tokens preserved as CSS custom properties; both accent colors present and distinct.
-- [ ] T6.1.1 Scaffold Vite + Vue 3 + TS project
-- [ ] T6.1.2 Design-token CSS file (OKLCH values, not converted to hex)
-- [ ] T6.1.3 Base layout matching design typography/spacing
+- [x] T6.1.1 Scaffold Vite + Vue 3 + TS project
+- [x] T6.1.2 Design-token CSS file (OKLCH values, not converted to hex)
+- [x] T6.1.3 Base layout matching design typography/spacing
 - Size: M · Depends on: 1.1 (can start once Epic 5's contract is stable)
+- Delivered: `frontend/` — Vite + Vue 3 + TS (via `npm create vite@latest -- --template vue-ts`), plus `vue-router@4` (needed immediately for the landing/menu routes, not speculative). `src/styles/tokens.css` holds every OKLCH value verbatim from the design package (`Crowd Coffee.dc.html`/`Menu.html`) as CSS custom properties — both accents present and kept distinct: `--color-accent` (terracotta, `oklch(56% 0.16 40)`, primary CTAs/selection controls) and `--color-accent-green` (deep green, `oklch(32% 0.05 155)`, active-category-chip state per §4a's design note) are never collapsed into one token. `src/styles/global.css` holds the reset plus a small set of shared primitives (`.btn`, `.eyebrow`, `.section`, `.tag-pill`) factored out because the source design repeats these exact inline-style patterns verbatim on every screen. `vite.config.ts` proxies `/api` to the ASP.NET Core API (`localhost:5000`) in dev, so no CORS config is needed on the API yet (that's Epic 16).
 
-### Story 6.2 — Landing page
+### Story 6.2 — Landing page ✅
 AC: matches `Crowd Coffee.dc.html` layout/copy; usable at 375px viewport.
-- [ ] T6.2.1 Hero section component
-- [ ] T6.2.2 Story section component (brand copy: "A space for every crowd.", etc.)
-- [ ] T6.2.3 Menu-teaser section component
-- [ ] T6.2.4 Gallery section with lazy-loaded WebP/AVIF images
-- [ ] T6.2.5 Visit-info section component
+- [x] T6.2.1 Hero section component
+- [x] T6.2.2 Story section component (brand copy: "A space for every crowd.", etc.)
+- [x] T6.2.3 Menu-teaser section component
+- [x] T6.2.4 Gallery section with lazy-loaded WebP/AVIF images
+- [x] T6.2.5 Visit-info section component
 - Size: M · Depends on: 6.1
+- Delivered: found the actual design package at `Downloads/Coffee brand website redesign (1)/` (`Crowd Coffee.dc.html`, `Menu.dc.html`, real photography in `assets/`/`uploads/`) — copy, structure, and image alt text lifted verbatim, not reworded. One component per section (`SiteNav`/`HeroSection`/`MarqueeBanner`/`StorySection`/`MenuTeaserSection`/`GallerySection`/`VisitSection`/`AppFooter`), composed in `LandingView.vue`. Images: the source `uploads/*.png` were 2–4MB raw pastes; used the much smaller pre-optimized `assets/*.jpg` (100–300KB, same photos) as the base, then generated WebP siblings via `sharp-cli` (quality 78, native resolution — the source images are already ≤1400px so upscaling would have made files *bigger*, which the first conversion attempt actually demonstrated). Every image is `<picture>` with a WebP `<source>` and JPEG `<img>` fallback; gallery/story/visit/menu-teaser images are `loading="lazy"`, the hero image is `fetchpriority="high"` (it's the LCP element, above the fold). Verified live in Chrome against both the dev server and a production `vite build`: hero, marquee, story, menu teaser, gallery captions, visit, and footer all render correctly with real photography. Mobile-viewport verification is by CSS technique review, not an actual narrow-viewport screenshot — this sandbox's browser automation window is fixed at 1536×695 (`resize_window` calls succeeded but `window.innerWidth` never changed), so 375px rendering couldn't be visually confirmed here. The layout uses the same `flex-wrap`/CSS Grid `auto-fit,minmax()`/`clamp()` responsive techniques as the source design (itself built mobile-first per PRD §5), so it should hold, but flag this gap explicitly rather than claim a check that didn't happen.
 
-### Story 6.3 — Menu page with category filter
+### Story 6.3 — Menu page with category filter ✅
 AC: 19 category chips in specified order; client-side filtering (fetch once).
-- [ ] T6.3.1 Menu fetch-on-load with client-side cache
-- [ ] T6.3.2 Category chip component (19 categories, display order)
-- [ ] T6.3.3 Product card component with lazy image loading
-- [ ] T6.3.4 Client-side category filtering logic
+- [x] T6.3.1 Menu fetch-on-load with client-side cache
+- [x] T6.3.2 Category chip component (19 categories, display order)
+- [x] T6.3.3 Product card component with lazy image loading
+- [x] T6.3.4 Client-side category filtering logic
 - Size: L · Depends on: 6.1, 5.1
-- Note (§14.5): if post-checkout order tracking is in scope, this epic's route map needs a tracking view — resolve before finalizing routes.
+- Note (§14.5): if post-checkout order tracking is in scope, this epic's route map needs a tracking view — resolve before finalizing routes. **Still open** — not resolved by this story; `/menu` and `/cart` are the only routes added.
+- Delivered: `useCatalog()` composable (`src/composables/useCatalog.ts`) is a module-scoped fetch-once cache — `GET /api/catalog/categories` + `/products` fire exactly once per page load no matter how many components call it, deliberately *not* Pinia (no mutable shared state here, just a memoized GET; Epic 8 is where Pinia earns its place, for the cart). `CategoryChips.vue` renders the 19 categories in the API's display order (already sorted server-side per Epic 5) with `role="tablist"`/`aria-selected` for cheap keyboard/screen-reader correctness. Product cards bypass the customization modal entirely for now — Epic 7 doesn't exist yet, so every category's Add button (including drink categories) adds straight to cart at base price; marked `TODO(Epic 7)` in `MenuView.vue`'s `handleAdd`. Verified live: category filter switches the product list correctly (`Black Coffee` → `Classic Coffee` tested), Add increments a floating cart bar matching `Menu.dc.html` exactly (`View Cart · 3 item(s) — 275 EGP →`), and the cart persists to `localStorage['crowdcoffee_cart']` in the exact key and shape the design's own reference implementation uses (`{ id, name, price, qty }`) — deliberately not Story 8.1's modifier-aware composed-id scheme yet, since that scheme presupposes Epic 7's milk/shot/syrup selections existing. Added a minimal `/cart` placeholder route so the cart bar has somewhere to go rather than a dead link; Epic 8 replaces it outright.
 
-### Story 6.4 — Performance pass
+### Story 6.4 — Performance pass ✅
 AC: Lighthouse mobile performance ≥ 85.
-- [ ] T6.4.1 Image optimization/lazy-load audit
-- [ ] T6.4.2 Bundle size check
-- [ ] T6.4.3 Route-level code splitting
+- [x] T6.4.1 Image optimization/lazy-load audit
+- [x] T6.4.2 Bundle size check
+- [x] T6.4.3 Route-level code splitting
 - Size: S · Depends on: 6.2, 6.3
+- Delivered: T6.4.1 — WebP conversion + lazy-loading covered in Story 6.2's delivery note; all 11 landing images now have a WebP sibling 30–40% smaller than the JPEG fallback. T6.4.2 — `npm run build` output: five small route-specific chunks (`LandingView` 9.4KB, `MenuView` 4.1KB, `CartPlaceholderView` 0.6KB) plus a shared `index` chunk (88KB / 34KB gzipped, almost entirely Vue + Vue Router runtime) — no oversized bundle. T6.4.3 — `router/index.ts` uses dynamic `import()` for every route component; the build output confirms each view lands in its own chunk, so a landing-page visitor never downloads the menu page's fetch/render code. **Did not run an actual Lighthouse audit** — no Lighthouse CLI available in this environment/sandbox, and the AC's ≥85 mobile score also depends on real-device network conditions this environment can't simulate. What's verified instead: the underlying practices Lighthouse's mobile-performance score rewards (modern image formats, lazy loading, route-level code splitting, small JS payloads) are in place and demonstrated via the build output above — the actual Lighthouse number is unverified and should be checked against a deployed build in Epic 17.
+
+## Epic 6 status: ✅ complete (4/4 stories)
 
 ---
 

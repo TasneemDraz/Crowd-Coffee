@@ -1,0 +1,135 @@
+@import './tokens.css';
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-body);
+  background: var(--color-bg);
+  color: var(--color-ink);
+  overflow-x: hidden;
+}
+
+a {
+  color: var(--color-accent);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--color-accent-hover);
+}
+
+button {
+  font-family: inherit;
+}
+
+img {
+  max-width: 100%;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+@keyframes marquee-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/*
+ * Shared primitives used across every landing/menu section — the source design repeats these
+ * exact button/eyebrow/section patterns verbatim as inline styles on every screen; pulling them
+ * into classes here avoids restating the same declarations in every component.
+ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px 28px;
+  border-radius: var(--radius-pill);
+  font-weight: 600;
+  font-size: 16px;
+  border: none;
+  cursor: pointer;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.btn--sm {
+  padding: 10px 20px;
+  font-size: 14px;
+}
+
+.btn--accent {
+  background: var(--color-accent);
+  color: white;
+}
+.btn--accent:hover {
+  background: var(--color-accent-hover);
+  color: white;
+}
+
+.btn--dark {
+  background: var(--color-ink);
+  color: white;
+}
+.btn--dark:hover {
+  color: white;
+}
+
+.btn--white {
+  background: white;
+  color: var(--color-ink);
+}
+.btn--white:hover {
+  color: var(--color-ink);
+}
+
+.btn--outline {
+  background: transparent;
+  border: 1.5px solid currentColor;
+  color: inherit;
+}
+.btn--outline:hover {
+  color: inherit;
+}
+
+.eyebrow {
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  font-size: 13px;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+}
+
+.section {
+  padding: 96px 32px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.section-heading {
+  font-size: clamp(32px, 4vw, 48px);
+  margin: 0;
+  line-height: 1.1;
+}
+
+.tag-pill {
+  padding: 8px 16px;
+  border-radius: var(--radius-pill);
+  font-size: 13px;
+  font-weight: 600;
+}

@@ -1,0 +1,37 @@
+/*
+ * Design tokens extracted from the CROWD design package (Crowd Coffee.dc.html / Menu.html).
+ * Colors are authored in OKLCH in the source — kept as OKLCH here, not converted to hex, per
+ * PRD §3. Two accents are deliberately both in play: terracotta drives primary CTAs/selection
+ * controls, deep green drives the menu's active-category-chip state (§4a design note) — do not
+ * collapse them into one.
+ */
+:root {
+  --color-accent: oklch(56% 0.16 40); /* terracotta */
+  --color-accent-hover: oklch(46% 0.16 40);
+  --color-accent-surface: oklch(94% 0.04 40);
+  --color-accent-green: oklch(32% 0.05 155); /* deep green — active category chip */
+  --color-accent-green-surface: oklch(94% 0.03 145);
+  --color-accent-terracotta-light: oklch(70% 0.14 40);
+
+  --color-ink: oklch(18% 0.01 50);
+  --color-ink-soft: oklch(30% 0.01 50);
+  --color-ink-faint: oklch(40% 0.01 50);
+  --color-ink-fainter: oklch(45% 0.01 50);
+
+  --color-bg: oklch(97% 0.02 75);
+  --color-bg-alt: oklch(94% 0.015 75);
+  --color-bg-tint: oklch(95% 0.01 75);
+
+  --color-border-idle: oklch(85% 0.01 70);
+  --color-border-soft: oklch(90% 0.01 70);
+
+  --color-white: oklch(99% 0.01 75);
+
+  --font-display: 'Permanent Marker', cursive;
+  --font-body: 'Space Grotesk', sans-serif;
+
+  --radius-pill: 100px;
+  --radius-lg: 24px;
+  --radius-md: 20px;
+  --radius-sm: 16px;
+}
