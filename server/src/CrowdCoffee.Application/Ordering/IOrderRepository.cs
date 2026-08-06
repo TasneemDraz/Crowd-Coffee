@@ -14,6 +14,10 @@ public interface IOrderRepository
     /// abandoned checkout before the gateway ever confirmed.
     Task<IReadOnlyList<Order>> GetStalePendingPaymentOrdersAsync(DateTime olderThanUtc, CancellationToken cancellationToken);
 
+    /// Epic 12's kitchen board: orders currently on it (Confirmed/Preparing/Ready), oldest first
+    /// so the board reads as a FIFO queue.
+    Task<IReadOnlyList<Order>> GetActiveKitchenOrdersAsync(CancellationToken cancellationToken);
+
     void Add(Order order);
 
     Task SaveChangesAsync(CancellationToken cancellationToken);

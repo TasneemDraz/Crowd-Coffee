@@ -1,5 +1,6 @@
 using CrowdCoffee.Api.Common;
 using CrowdCoffee.Application.Payments;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CrowdCoffee.Api.Controllers;
@@ -33,7 +34,7 @@ public class PaymentsController(
         return result.ToActionResult(this);
     }
 
-    // TODO(Epic 11): restrict to [Authorize(Roles = "Manager")] once staff auth exists.
+    [Authorize(Policy = "ManagerOnly")]
     [HttpGet("reconciliation")]
     public async Task<IActionResult> Reconciliation(CancellationToken cancellationToken)
     {

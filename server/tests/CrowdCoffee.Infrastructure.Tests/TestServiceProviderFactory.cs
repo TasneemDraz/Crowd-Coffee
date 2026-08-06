@@ -2,6 +2,7 @@ using CrowdCoffee.Application.Cart;
 using CrowdCoffee.Application.Catalog;
 using CrowdCoffee.Application.Common;
 using CrowdCoffee.Application.Inventory;
+using CrowdCoffee.Application.Kitchen;
 using CrowdCoffee.Application.Ordering;
 using CrowdCoffee.Application.Payments;
 using CrowdCoffee.Domain.Ordering;
@@ -62,6 +63,8 @@ public static class TestServiceProviderFactory
         services.AddScoped<IOrderRepository, OrderRepository>();
         services.AddScoped<IOrderNumberGenerator, SqlOrderNumberGenerator>();
         services.AddScoped<CreateOrderHandler>();
+        services.AddScoped<AdvanceOrderStatusHandler>();
+        services.AddScoped<GetKitchenBoardOrdersHandler>();
 
         services.AddSingleton(Options.Create(new PaymobOptions { HmacSecret = paymobHmacSecret, ApiBaseUrl = "https://accept.paymob.com" }));
         services.AddSingleton(new HttpClient { BaseAddress = new Uri("https://accept.paymob.com") });

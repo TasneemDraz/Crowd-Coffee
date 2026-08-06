@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router';
+import { useAuthStore } from '../stores/auth';
 
 export const router = createRouter({
   history: createWebHistory(),
@@ -39,5 +40,29 @@ export const router = createRouter({
       name: 'checkout-return',
       component: () => import('../views/CheckoutReturnView.vue'),
     },
+    {
+      path: '/staff/login',
+      name: 'staff-login',
+      component: () => import('../views/StaffLoginView.vue'),
+    },
+    {
+      // Epic 12: three-column live order board. Staff-only (either role — a barista runs the
+      // board day to day, a manager can too), guarded below.
+      path: '/kitchen',
+      name: 'kitchen',
+      component: () => import('../views/KitchenBoardView.vue'),
+      meta: { requiresStaff: true },
+    },
   ],
+});
+
+router.beforeEach((to) => {
+  if (to.meta.requiresStaff) {
+    const auth = useAuthStore();
+    if (!auth.isAuthenticated) {
+      return { path: '/staff/login', query: { redirect: to.fullPath } };
+    }
+  }
+
+  return true;
 });

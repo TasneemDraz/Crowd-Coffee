@@ -487,18 +487,22 @@ AC: manager sees gateway-confirmed payments vs. orders.
 
 Goal: JWT + cookie refresh, two roles (§11).
 
-### Story 11.1 — Login & JWT issuance
+### Story 11.1 — Login & JWT issuance ✅
 AC: login issues short-lived JWT + httpOnly refresh cookie; password hashed with BCrypt/Argon2.
-- [ ] T11.1.1 Login endpoint
-- [ ] T11.1.2 Password hashing (BCrypt/Argon2)
-- [ ] T11.1.3 JWT issuance with role claim
+- [x] T11.1.1 Login endpoint
+- [x] T11.1.2 Password hashing (BCrypt/Argon2)
+- [x] T11.1.3 JWT issuance with role claim
 - Size: M · Depends on: 2.4
+- Delivered: `POST /api/auth/login` (`AuthController`/`LoginHandler`) — BCrypt (`BCryptPasswordHasher`, `BCrypt.Net-Next`) verifies the password against `StaffUser.PasswordHash` (the column was already sized for this back in Story 2.4); a 15-minute JWT (`JwtTokenGenerator`, `System.IdentityModel.Tokens.Jwt`, HMAC-SHA256) carries `sub`/name/`role` claims, and a separate 7-day refresh token is issued alongside it and set as an httpOnly, `SameSite=Strict` cookie scoped to `/api/auth` (`RefreshCookieName`). Same generic `Auth.InvalidCredentials` error for "no such user" and "wrong password" — a distinct message would let an attacker enumerate valid staff usernames. Rate-limited via a new `"staff-login"` policy (10/min/IP — separate from `"order-creation"`'s 5/min since it's staff traffic, not anonymous customer traffic). Two dev-only seed accounts (`manager1`/`Manager123!`, `barista1`/`Barista123!`) land via `StaffSeedData`/`HasData` — `BCrypt.HashPassword` runs once at `dotnet ef migrations add` time, so only the resulting hash (not the plaintext) is baked into the migration, same pattern as the menu seed. Verified live: correct login returns a JWT + sets the cookie; wrong password and unknown username both return the identical `401`; a deactivated `StaffUser` is rejected even with the correct password (covered by `LoginHandlerTests`, hand-rolled fakes per this test project's no-mocking-library convention).
 
-### Story 11.2 — Refresh flow & role-based authorization
+### Story 11.2 — Refresh flow & role-based authorization ✅
 AC: refresh rotates token via httpOnly cookie; role guards on manager-only vs. shared endpoints.
-- [ ] T11.2.1 Refresh endpoint (cookie-based rotation)
-- [ ] T11.2.2 Policy-based authorization setup (Manager vs. Barista)
+- [x] T11.2.1 Refresh endpoint (cookie-based rotation)
+- [x] T11.2.2 Policy-based authorization setup (Manager vs. Barista)
 - Size: M · Depends on: 11.1
+- Delivered: `POST /api/auth/refresh` (`RefreshHandler`) reads the httpOnly cookie, issues a brand-new refresh token, and revokes the old one in the same call (`RefreshToken.RevokeAtUtc`/`ReplacedByTokenId`) — real rotation, not just reissuing the same value. Went one step past the AC's literal wording and added reuse detection: presenting an already-revoked token (a replay of a stolen raw value, since a legitimate client always has the latest one) revokes *every* other active token for that user, not just rejects the one request — a standard refresh-rotation hardening the AC's "rotates token" wording implies but doesn't spell out. `POST /api/auth/logout` (not in the AC, but a login flow without one is unusable for manual testing/session switching) revokes the current token and clears the cookie. Authorization is two named policies (`AddAuthorization`, `Program.cs`): `"ManagerOnly"` (`RequireRole("Manager")`) and `"StaffOnly"` (`RequireRole("Manager", "Barista")`) — applied to close out the `TODO(Epic 11)` markers left in `InventoryController` and `PaymentsController.Reconciliation` from Epics 4/10. `RefreshHandlerTests` (4 tests: valid rotation, unknown token, expired token, revoked-token-reused-and-sweeps-siblings) use the same hand-rolled-fake pattern as Story 11.1's tests. **Also fixed while wiring this in**: the frontend's Vite dev proxy (`vite.config.ts`) targeted port 5000, but the API's actual "http" launch profile runs on 5076 (confirmed live) — a pre-existing mismatch that would have silently broken every browser-driven request through the dev server, not just the new login page; corrected the proxy target and added a `/hubs` WebSocket proxy entry for Epic 12. Verified live end-to-end through the real dev proxy in Chrome: login → JWT-authorized `GET /api/inventory/low-stock` (`200` for manager, `403` for barista) → refresh rotates the cookie → replaying the old cookie value correctly `401`s with `Auth.RefreshTokenReused` → logout clears the session and the router guard (Story added alongside this, see Epic 12) redirects `/kitchen` back to `/staff/login?redirect=/kitchen`.
+
+## Epic 11 status: ✅ complete (2/2 stories)
 
 ---
 
@@ -506,21 +510,25 @@ AC: refresh rotates token via httpOnly cookie; role guards on manager-only vs. s
 
 Goal: live order board, SignalR push (§11).
 
-### Story 12.1 — SignalR hub for order events
+### Story 12.1 — SignalR hub for order events ✅
 AC: new confirmed orders push in <3 seconds; broadcasts on `Confirmed` and subsequent transitions.
-- [ ] T12.1.1 `OrderHub` implementation
-- [ ] T12.1.2 Broadcast wired to state-machine transition events
-- [ ] T12.1.3 Auth on hub connection (staff only)
+- [x] T12.1.1 `OrderHub` implementation
+- [x] T12.1.2 Broadcast wired to state-machine transition events
+- [x] T12.1.3 Auth on hub connection (staff only)
 - Size: M · Depends on: 3.1, 11.2
+- Delivered: added `OrderStatusChangedEvent(OrderId, NewStatus)` (Domain) raised on *every* successful `Order.TransitionTo` — unlike `OrderCancelledEvent`/`OrderCompletedEvent`, which only fire on specific edges for the Epic 4 stock handlers, the kitchen board needs to know about every step (`Confirmed`, `Preparing`, `Ready`, ...). `OrderHub` (`[Authorize(Policy = "StaffOnly")]`, mapped at `/hubs/orders`) is pure server-to-client push — clients never call a hub method, they connect and listen. `BroadcastOrderStatusChangedHandler` (`IDomainEventHandler<OrderStatusChangedEvent>`) bridges Epic 3's existing domain-event pipeline to it: re-loads the order (same "don't trust in-memory navigation" reasoning as the Epic 4 stock handlers) and pushes a `KitchenOrderDto` via `IHubContext<OrderHub>`. This handler physically lives in **Api**, not Application/Infrastructure — it's the only layer allowed to know about `OrderHub`/`IHubContext` given this project's one-way layering, even though every other domain-event handler so far has lived in Application or Infrastructure. Auth on the hub connection reuses the JWT bearer scheme already wired for Epic 11: since a browser can't set a custom `Authorization` header on a WebSocket upgrade, the SignalR client sends the token as `?access_token=...` instead, bridged into the normal bearer-token path via `JwtBearerEvents.OnMessageReceived`, scoped to `/hubs` paths only. Verified live in Chrome: connected as `barista1`, watched a `curl`-created cash order (auto-`Confirmed`) appear on the board with **zero page reload**, sub-second — comfortably inside the `<3s` AC — confirmed via the browser's own console log of the WebSocket connecting and the DOM updating.
 
-### Story 12.2 — Kitchen board UI
+### Story 12.2 — Kitchen board UI ✅
 AC: three columns (New/Preparing/Ready); modifiers spelled out without extra tap; Google Maps deep link; audible alert.
-- [ ] T12.2.1 Vue kitchen-board view + SignalR client connection
-- [ ] T12.2.2 Column/card components with one-tap state advance
-- [ ] T12.2.3 Modifier display reconstructed from `OrderItemModifier` snapshots
-- [ ] T12.2.4 Google Maps deep-link construction from pinned lat/lng
-- [ ] T12.2.5 Audible alert on new order
+- [x] T12.2.1 Vue kitchen-board view + SignalR client connection
+- [x] T12.2.2 Column/card components with one-tap state advance
+- [x] T12.2.3 Modifier display reconstructed from `OrderItemModifier` snapshots
+- [x] T12.2.4 Google Maps deep-link construction from pinned lat/lng
+- [x] T12.2.5 Audible alert on new order
 - Size: L · Depends on: 12.1, 9.2
+- Delivered: no design mock covers the staff area at all (the CROWD design package only ever covered the customer-facing site), so `KitchenBoardView.vue` reuses the existing OKLCH design tokens rather than inventing a second visual language for two internal-only screens. Three columns (`Confirmed`→"New", `Preparing`, `Ready`) computed client-side from a flat `orders` array kept in sync by `applyIncomingOrder`: an initial `GET /api/kitchen/orders` (`GetKitchenBoardOrdersHandler`, `IOrderRepository.GetActiveKitchenOrdersAsync` — oldest-first FIFO) populates it, then every `orderStatusChanged` push either upserts (still on the board) or removes (order moved past `Ready` — picked up, out for delivery, cancelled) the matching row by id. One-tap advance (`POST /api/kitchen/orders/{id}/advance`, `AdvanceOrderStatusHandler`) deliberately doesn't accept a target status from the client — the board only ever offers "move to the next column," so the server computes what that means itself (branching at `Ready` into `OutForDelivery`/`PickedUp` per the order's `Mode`, reusing `Order.TransitionTo`'s existing guard) rather than trusting a client-supplied status; `changedBy` comes from the JWT's name claim (`User.Identity.Name`), not a free-text field. `KitchenOrderDto`/`KitchenOrderDtoMapper` (new `Application/Kitchen` module) spell modifiers out as plain display-name strings (e.g. "Oat Milk") reconstructed from the `OrderItemModifier` snapshots already on the order — no second lookup, per the AC. The Google Maps link (`mapsUrl()`) only renders for delivery orders with a pinned lat/lng, using the `https://www.google.com/maps/dir/?api=1&destination=lat,lng` deep-link form (turn-by-turn directions, not just a pin) — reuses the `Latitude`/`Longitude` Story 9.1's location picker already captures. The audible alert (`lib/alertSound.ts`) is a two-tone Web Audio beep generated in code rather than a shipped audio asset — there's no sound file in the design package for this internal-only screen — fired only when a *new* order (one not already in the local `orders` array) arrives at `Confirmed`, not on every push (so advancing an order yourself doesn't re-trigger it). A new `useAuthStore` (Pinia) keeps the access token in memory only, never `localStorage` — an XSS payload that can read `localStorage` can steal a token stored there, but this store's state doesn't survive a reload anyway, and the actual persistence (the refresh token) is the httpOnly cookie the browser manages entirely on its own, which JS can't read either way; `main.ts` awaits one silent `tryRestoreSession()` refresh-cookie exchange before the app ever mounts, so a reload doesn't force a re-login. Verified live end-to-end in Chrome (see Story 12.1's note for the SignalR proof): staff login → board loads existing `Confirmed` order → tapped "Start preparing" → card moved `New → Preparing` and the button label updated to "Mark ready" → a fresh order created via the real API appeared in "New" with its `(No Milk)` modifier spelled out and its `Notes` shown, no reload → sign-out correctly cleared the session and the `/kitchen` route guard redirected an unauthenticated visit to `/staff/login?redirect=/kitchen`. No console errors at any point in the flow.
+
+## Epic 12 status: ✅ complete (2/2 stories)
 
 ---
 

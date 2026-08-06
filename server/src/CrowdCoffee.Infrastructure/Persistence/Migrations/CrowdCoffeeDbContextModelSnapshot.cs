@@ -3034,6 +3034,42 @@ namespace CrowdCoffee.Infrastructure.Persistence.Migrations
                     b.ToTable("OrderStatusHistories", (string)null);
                 });
 
+            modelBuilder.Entity("CrowdCoffee.Domain.Staff.RefreshToken", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("ExpiresAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("ReplacedByTokenId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("RevokedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("StaffUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StaffUserId");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique();
+
+                    b.ToTable("RefreshTokens", (string)null);
+                });
+
             modelBuilder.Entity("CrowdCoffee.Domain.Staff.StaffUser", b =>
                 {
                     b.Property<Guid>("Id")
@@ -3064,6 +3100,24 @@ namespace CrowdCoffee.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("StaffUsers", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("4548cce5-feeb-af60-e8ed-6973067e0f7e"),
+                            IsActive = true,
+                            PasswordHash = "$2a$11$6TAyXfMx..MMUHVpUCqr7Oey6cc4SVJ4Lga2nCotjhWdy9PJf4d0C",
+                            Role = "Manager",
+                            Username = "manager1"
+                        },
+                        new
+                        {
+                            Id = new Guid("3a242507-350f-e787-f5cb-0466f1d786cf"),
+                            IsActive = true,
+                            PasswordHash = "$2a$11$.2ZqXoDJUnTFSypYTSAG1uM4ANZ6jozkP6XyZBBb3JH9/13jxCwoq",
+                            Role = "Barista",
+                            Username = "barista1"
+                        });
                 });
 
             modelBuilder.Entity("CrowdCoffee.Infrastructure.Persistence.OrderNumberCounter", b =>
@@ -3210,6 +3264,15 @@ namespace CrowdCoffee.Infrastructure.Persistence.Migrations
                     b.HasOne("CrowdCoffee.Domain.Ordering.Order", null)
                         .WithMany("StatusHistory")
                         .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("CrowdCoffee.Domain.Staff.RefreshToken", b =>
+                {
+                    b.HasOne("CrowdCoffee.Domain.Staff.StaffUser", null)
+                        .WithMany()
+                        .HasForeignKey("StaffUserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

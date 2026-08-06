@@ -7,11 +7,19 @@ export default defineConfig({
   plugins: [vue()],
   server: {
     proxy: {
-      // Forwards to the ASP.NET Core API (server/src/CrowdCoffee.Api, default port 5000) so the
-      // browser sees a same-origin request in dev — no CORS setup needed yet (that's Epic 16).
+      // Forwards to the ASP.NET Core API (server/src/CrowdCoffee.Api, "http" launch profile ->
+      // port 5076) so the browser sees a same-origin request in dev — no CORS setup needed yet
+      // (that's Epic 16).
       '/api': {
-        target: 'http://localhost:5000',
+        target: 'http://localhost:5076',
         changeOrigin: true,
+      },
+      // Epic 12: SignalR's hub connection negotiates over HTTP then upgrades to a WebSocket —
+      // ws: true is what makes Vite's proxy forward that upgrade instead of dropping it.
+      '/hubs': {
+        target: 'http://localhost:5076',
+        changeOrigin: true,
+        ws: true,
       },
     },
   },

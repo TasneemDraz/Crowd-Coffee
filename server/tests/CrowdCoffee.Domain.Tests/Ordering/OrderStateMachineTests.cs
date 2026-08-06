@@ -232,35 +232,61 @@ public class OrderStateMachineTests
         // case the release-stock handler exists for.
         var order = CreateCashOrder();
         AdvanceTo(order, OrderStatus.Confirmed);
+        order.ClearDomainEvents(); // discard the Confirmed step's own OrderStatusChangedEvent
 
         order.TransitionTo(OrderStatus.Cancelled, "staff", Now);
 
-        var domainEvent = Assert.Single(order.DomainEvents);
-        var cancelled = Assert.IsType<OrderCancelledEvent>(domainEvent);
+        var cancelled = Assert.Single(order.DomainEvents.OfType<OrderCancelledEvent>());
         Assert.Equal(order.Id, cancelled.OrderId);
     }
 
     [Theory]
     [InlineData(OrderStatus.Pending)]
     [InlineData(OrderStatus.PendingPayment)]
-    public void Cancellation_FromPendingOrPendingPayment_RaisesNoDomainEvent(OrderStatus fromStatus)
+    public void Cancellation_FromPendingOrPendingPayment_RaisesNoOrderCancelledEvent(OrderStatus fromStatus)
     {
         // Nothing was ever reserved for an order still awaiting confirmation/payment — raising
         // OrderCancelledEvent here would make the release handler claw back stock this order
-        // never held (see the comment on Order.TransitionTo).
+        // never held (see the comment on Order.TransitionTo). The kitchen-board-facing
+        // OrderStatusChangedEvent still fires (Epic 12 needs to know this order left the board).
         var order = fromStatus == OrderStatus.PendingPayment ? CreatePendingPaymentOrder() : CreateCashOrder();
 
         order.TransitionTo(OrderStatus.Cancelled, "staff", Now);
 
-        Assert.Empty(order.DomainEvents);
+        Assert.Empty(order.DomainEvents.OfType<OrderCancelledEvent>());
+        var statusChanged = Assert.Single(order.DomainEvents.OfType<OrderStatusChangedEvent>());
+        Assert.Equal(OrderStatus.Cancelled, statusChanged.NewStatus);
     }
 
     [Fact]
-    public void NonCancellingTransition_RaisesNoDomainEvent()
+    public void NonCancellingTransition_RaisesNoOrderCancelledOrCompletedEvent()
     {
         var order = CreateCashOrder();
 
         order.TransitionTo(OrderStatus.Confirmed, "staff", Now);
+
+        Assert.Empty(order.DomainEvents.OfType<OrderCancelledEvent>());
+        Assert.Empty(order.DomainEvents.OfType<OrderCompletedEvent>());
+    }
+
+    [Fact]
+    public void EveryTransition_RaisesOrderStatusChangedEvent_WithTheNewStatus()
+    {
+        var order = CreateCashOrder();
+
+        order.TransitionTo(OrderStatus.Confirmed, "staff", Now);
+
+        var statusChanged = Assert.Single(order.DomainEvents.OfType<OrderStatusChangedEvent>());
+        Assert.Equal(order.Id, statusChanged.OrderId);
+        Assert.Equal(OrderStatus.Confirmed, statusChanged.NewStatus);
+    }
+
+    [Fact]
+    public void IllegalTransition_RaisesNoOrderStatusChangedEvent()
+    {
+        var order = CreateCashOrder();
+
+        order.TransitionTo(OrderStatus.Preparing, "staff", Now); // Pending -> Preparing skips Confirmed
 
         Assert.Empty(order.DomainEvents);
     }

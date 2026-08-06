@@ -23,6 +23,17 @@ public class OrderRepository(CrowdCoffeeDbContext dbContext) : IOrderRepository
             .Where(o => o.Status == OrderStatus.PendingPayment && o.CreatedAt < olderThanUtc)
             .ToListAsync(cancellationToken);
 
+    private static readonly OrderStatus[] ActiveKitchenStatuses =
+        [OrderStatus.Confirmed, OrderStatus.Preparing, OrderStatus.Ready];
+
+    public async Task<IReadOnlyList<Order>> GetActiveKitchenOrdersAsync(CancellationToken cancellationToken) =>
+        await dbContext.Orders
+            .Include(o => o.Items)
+            .ThenInclude(i => i.Modifiers)
+            .Where(o => ActiveKitchenStatuses.Contains(o.Status))
+            .OrderBy(o => o.CreatedAt)
+            .ToListAsync(cancellationToken);
+
     public void Add(Order order) => dbContext.Orders.Add(order);
 
     public async Task SaveChangesAsync(CancellationToken cancellationToken)

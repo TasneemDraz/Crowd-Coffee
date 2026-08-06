@@ -27,6 +27,7 @@ public class CrowdCoffeeDbContext(DbContextOptions<CrowdCoffeeDbContext> options
     public DbSet<StockMovement> StockMovements => Set<StockMovement>();
 
     public DbSet<StaffUser> StaffUsers => Set<StaffUser>();
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     public DbSet<OrderNumberCounter> OrderNumberCounters => Set<OrderNumberCounter>();
 
@@ -41,6 +42,8 @@ public class CrowdCoffeeDbContext(DbContextOptions<CrowdCoffeeDbContext> options
         modelBuilder.Entity<ModifierGroup>().HasData(MenuSeedData.ModifierGroups);
         modelBuilder.Entity<ModifierOption>().HasData(MenuSeedData.ModifierOptions);
         modelBuilder.Entity<ProductModifierGroup>().HasData(MenuSeedData.ProductModifierGroups);
+
+        modelBuilder.Entity<StaffUser>().HasData(StaffSeedData.StaffUsers);
     }
 
     /// Collects domain events raised by tracked aggregates (e.g. Order.TransitionTo(Cancelled))

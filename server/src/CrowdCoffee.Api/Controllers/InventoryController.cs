@@ -1,11 +1,12 @@
 using CrowdCoffee.Api.Common;
 using CrowdCoffee.Application.Inventory;
 using FluentValidation;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CrowdCoffee.Api.Controllers;
 
-// TODO(Epic 11): restrict to [Authorize(Roles = "Manager")] once staff auth exists.
+[Authorize(Policy = "ManagerOnly")]
 [ApiController]
 [Route("api/inventory")]
 public class InventoryController(

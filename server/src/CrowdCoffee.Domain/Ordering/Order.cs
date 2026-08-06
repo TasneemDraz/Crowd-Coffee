@@ -178,6 +178,10 @@ public class Order : IHasDomainEvents
 
         _statusHistory.Add(new OrderStatusHistory(Guid.NewGuid(), Id, previousStatus, newStatus, changedBy, occurredAtUtc, reason));
 
+        // Epic 12: every successful transition pushes to the live kitchen board, not just the
+        // cancel/complete edges below that also happen to trigger stock-ledger side effects.
+        _domainEvents.Add(new OrderStatusChangedEvent(Id, newStatus));
+
         // §8: stock is only ever reserved on the Confirmed transition — an order cancelled while
         // still Pending/PendingPayment never had anything reserved. Raising OrderCancelledEvent
         // for those would make ReleaseStockOnOrderCancelledHandler "release" ingredient
