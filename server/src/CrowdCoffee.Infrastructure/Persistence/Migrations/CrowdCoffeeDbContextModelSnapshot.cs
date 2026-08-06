@@ -3066,6 +3066,52 @@ namespace CrowdCoffee.Infrastructure.Persistence.Migrations
                     b.ToTable("StaffUsers", (string)null);
                 });
 
+            modelBuilder.Entity("CrowdCoffee.Infrastructure.Persistence.OrderNumberCounter", b =>
+                {
+                    b.Property<string>("DateKey")
+                        .HasMaxLength(6)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(6)");
+
+                    b.Property<int>("LastValue")
+                        .HasColumnType("int");
+
+                    b.HasKey("DateKey");
+
+                    b.ToTable("OrderNumberCounters", (string)null);
+                });
+
+            modelBuilder.Entity("CrowdCoffee.Infrastructure.Persistence.PaymentEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("AmountEgp")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("GatewayTransactionId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<bool>("IsSuccessful")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid>("OrderId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("ReceivedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GatewayTransactionId")
+                        .IsUnique();
+
+                    b.ToTable("PaymentEvents", (string)null);
+                });
+
             modelBuilder.Entity("CrowdCoffee.Domain.Catalog.ModifierOption", b =>
                 {
                     b.HasOne("CrowdCoffee.Domain.Catalog.ModifierGroup", null)

@@ -392,33 +392,39 @@ AC: server recomputes each line from current DB prices/deltas; server-side id co
 
 Goal: validate → reserve stock → persist order, atomically (§12).
 
-### Story 9.1 — Checkout page UI
+### Story 9.1 — Checkout page UI ✅
 AC: matches `Checkout.dc.html`; location pin via `postMessage` contract; required fields per mode.
-- [ ] T9.1.1 Checkout form component
-- [ ] T9.1.2 Location picker integration (`{ type: 'crowd-location', lat, lng }`)
-- [ ] T9.1.3 Client-side required-field validation (name/phone always; address if delivery)
-- [ ] T9.1.4 Payment method selection UI
+- [x] T9.1.1 Checkout form component
+- [x] T9.1.2 Location picker integration (`{ type: 'crowd-location', lat, lng }`)
+- [x] T9.1.3 Client-side required-field validation (name/phone always; address if delivery)
+- [x] T9.1.4 Payment method selection UI
 - Size: L · Depends on: 8.2
-- Note (§14.1, §14.2, §14.4): flat-vs-capped delivery fee, opening-hours enforcement, and minimum delivery order value all affect this form's validation rules — resolve before finalizing.
+- Note (§14.1, §14.2, §14.4): **resolved with the user directly** before implementation — no opening-hours enforcement in v1, no minimum delivery order value, flat 30 EGP delivery fee (already the structural fact the cart store encoded in Epic 8). None of these gate checkout.
+- Delivered: `CheckoutView.vue` replaces the Epic 6 placeholder, reproducing `Checkout.dc.html`'s layout (details card, payment-method card, sticky order-summary sidebar, confirmation screen, empty-cart guard) with the app's existing CSS custom properties instead of the mock's inline OKLCH literals. The location picker is a real Leaflet map (`frontend/public/location-picker.html`, ported from the design package's `Location Picker.html` almost verbatim) iframed in and listened to via the exact `{ type: 'crowd-location', lat, lng }` `postMessage` contract the mock specifies. Cart lines only ever stored the Epic 8.1 *composed* id string (`{productId}::{milkId}::{shot|noshot}::{syrupIds}`) — checkout needs the decomposed parts back to build the order request, so added `decomposeDrinkLineId` (`lib/cartLineId.ts`, inverse of `composeDrinkLineId`, 3 new unit tests) plus a lookup through `useModifiers()` to recover the concrete `shotOptionId` (the composed id only encodes "shot"/"noshot", not which shot option). An idempotency key (`crypto.randomUUID()`) is generated once per checkout page visit and reused across retries, satisfying Story 9.3 from the client side. Cash orders clear the cart and show the confirmation screen immediately (server auto-confirms, see Story 9.2); Card/Wallet orders call `POST /api/payments/initiate` (Epic 10.2) and redirect the browser to the gateway — cart clears only once the return page confirms payment actually went through, not at redirect time. Verified live end-to-end against the real running API (see Story 9.2's note) and via `npm run build`/`vue-tsc` typecheck/`vitest`.
 
-### Story 9.2 — Order creation endpoint (transactional)
+### Story 9.2 — Order creation endpoint (transactional) ✅
 AC: single transaction validate → reserve → persist with snapshots; `OrderNumber` in `CRW-YYMMDD-NNNN` format, daily-resetting sequence; no orphan reservation on partial failure.
-- [ ] T9.2.1 `OrderNumber` sequence generator (DB sequence or per-day counter table — avoid `MAX()+1` under concurrency)
-- [ ] T9.2.2 Application command using Epic 3.2 factory methods
-- [ ] T9.2.3 Wrap validate → reserve → persist in one DB transaction
-- [ ] T9.2.4 Integration test: partial failure leaves no orphan reservation
+- [x] T9.2.1 `OrderNumber` sequence generator (DB sequence or per-day counter table — avoid `MAX()+1` under concurrency)
+- [x] T9.2.2 Application command using Epic 3.2 factory methods
+- [x] T9.2.3 Wrap validate → reserve → persist in one DB transaction
+- [x] T9.2.4 Integration test: partial failure leaves no orphan reservation
 - Size: L · Depends on: 3.2, 4.1, 8.3
+- Delivered: reconciled a real tension between §7 ("cash orders enter at `Pending`, a staff member confirms"; card/wallet enter at `PendingPayment` and "never reach the kitchen board until the gateway webhook confirms"), §8 ("deduct at Confirmed, not at Pending — otherwise abandoned card checkouts eat your inventory"), and §12/this story's own AC ("validate → reserve → persist" as one transaction) — a cash order has nothing left to wait on once placed, so `CreateOrderHandler` creates it at `Pending` and immediately calls `order.TransitionTo(Confirmed, "system", ...)` in the *same* transaction (full `OrderStatusHistory` row, per §7's "no exceptions"), which is what actually triggers `StockReservationService.ReserveForOrderAsync` — satisfying every one of those constraints at once. Card/Wallet orders stop at `PendingPayment`, reserve nothing, and wait for Epic 10.3's webhook. `IOrderNumberGenerator`/`SqlOrderNumberGenerator` (T9.2.1) backs the daily counter with a real `OrderNumberCounters(DateKey, LastValue)` table and an `UPDATE ... OUTPUT` statement that takes a normal SQL Server row-level lock for the life of the caller's transaction — first order of a new day falls through to an `INSERT`, retried as an `UPDATE` on a duplicate-key race — deliberately not `MAX()+1`. `DateKey` uses Africa/Cairo local date (`CairoClock`, §6 rule 5's "render in Cairo" extended to mean the shop's calendar day, not UTC's), not UTC. New `IUnitOfWork`/`IUnitOfWorkTransaction` port (Application/Common) wraps EF's transaction API since Application can't reference `CrowdCoffeeDbContext` directly (one-way layering, `ARCHITECTURE.md`). `CartLineRepricer` (Epic 8.3) is reused as-is for server-side line pricing/validation — but it only ever handled drink lines with modifiers; extended it to accept nullable `MilkOptionId`/`ShotOptionId` and validate *against whichever modifier groups the product actually has attached* (not a hardcoded drink-category list), so non-drink lines (pastries etc., which Epic 9's checkout also has to submit) reject any unexpected modifier selection instead of erroring on a milk requirement that never applied. **Bug found and fixed while building this**: `Order.TransitionTo` was unconditionally raising `OrderCancelledEvent` on any cancellation, including from `Pending`/`PendingPayment` — states that never had anything reserved (§8: reservation only happens at Confirmed). `ReleaseStockOnOrderCancelledHandler` reacting to that would have released some *other* order's legitimate reservation on the same `StockItem`, since it computes requirements from the cancelled order's recipe regardless of whether a reservation actually exists. Fixed by only raising the event when cancelling from `Confirmed`/`Preparing` (the only states reachable after an actual reservation) — this was a latent bug from Epic 3.3/4.1 that Epic 9/10's much heavier use of the Confirmed→cancel path would otherwise have hit in production; updated/added Domain.Tests coverage for both cases and fixed one Epic 4 integration test whose setup had silently relied on the buggy behavior. Verified live against the real running API: a real cash order (`CRW-260806-0005`) auto-confirmed and reserved stock (18g × 2 units) in one call; a card order correctly stayed `PendingPayment` with zero reservation. Integration tests (`CreateOrderIntegrationTests`, 5 tests) prove sufficient-stock auto-confirm, **insufficient stock rolls back the entire transaction — no `Order` row, no reservation** (the AC's core claim), card orders reserve nothing, non-drink lines price correctly with no modifiers. **Found and fixed a real test-isolation bug in the process**: multiple new integration tests were each attaching their own `Recipe` to the *same* deterministically-picked "classic" category product; `GetRequiredQuantitiesAsync` aggregates every `Recipe` row for a product, so under xUnit's default parallel-test-class execution, one test's reservation call would pull in a sibling test's stock item (and, in one repro, its deliberately-insufficient stock) — fixed by giving each test a distinct product, and disabled test-class parallelization for `CrowdCoffee.Infrastructure.Tests` altogether (`AssemblyConfig.cs`) after also catching a real SQL Server deadlock on the `OrderNumberCounters` hot row under concurrent test execution. Full suite run 3× consecutively with zero flakes after the fix.
 
-### Story 9.3 — Idempotency key on order creation
+### Story 9.3 — Idempotency key on order creation ✅
 AC: repeat `IdempotencyKey` never creates a duplicate order.
-- [ ] T9.3.1 Unique constraint on `IdempotencyKey`
-- [ ] T9.3.2 Return original order on repeat key instead of erroring/duplicating
+- [x] T9.3.1 Unique constraint on `IdempotencyKey`
+- [x] T9.3.2 Return original order on repeat key instead of erroring/duplicating
 - Size: S · Depends on: 9.2
+- Delivered: the unique index on `Order.IdempotencyKey` already existed from Epic 2.2 (added ahead of time for exactly this story). `CreateOrderHandler` checks for an existing order by key *before* doing any work (fast path for a genuine retry) and also catches a DB-level unique-constraint violation during save (`OrderIdempotencyConflictException`, thrown by `OrderRepository.SaveChangesAsync` after inspecting the underlying `SqlException`, kept out of Application's exception surface) for the genuinely-concurrent double-submit race, returning the winning order either way rather than erroring. Proven with a real concurrency-adjacent test (`RepeatIdempotencyKey_ReturnsOriginalOrder_DoesNotDuplicate`) asserting both calls return the identical order id and exactly one row exists.
 
-### Story 9.4 — Rate limiting on order creation
+### Story 9.4 — Rate limiting on order creation ✅
 AC: endpoint rate-limited per §12.
-- [ ] T9.4.1 ASP.NET Core rate limiting middleware on order creation (and future OTP endpoints)
+- [x] T9.4.1 ASP.NET Core rate limiting middleware on order creation (and future OTP endpoints)
 - Size: S · Depends on: 9.2
+- Delivered: `System.Threading.RateLimiting`'s fixed-window limiter, partitioned per client IP (5 requests/minute, no queueing — a burst past the limit gets `429` immediately, not delayed), registered as a named `"order-creation"` policy so it's trivially reusable for future OTP/phone endpoints per the AC's parenthetical. Applied via `[EnableRateLimiting("order-creation")]` on `OrdersController.Create` only, not globally. Verified live: 5 rapid requests succeeded, the 6th (and all after, within the window) returned `429`.
+
+## Epic 9 status: ✅ complete (4/4 stories)
 
 ---
 
@@ -426,44 +432,54 @@ AC: endpoint rate-limited per §12.
 
 Goal: card/wallet payment without touching raw card data (§9).
 
-### Story 10.1 — `IPaymentGateway` abstraction + Paymob adapter
+**No live Paymob credentials for this project** (confirmed with the user before starting) — every piece below is built against Paymob's documented public API contract and proven with real local unit/integration tests (including a hand-computed independent HMAC check and a full webhook round-trip against real SQL Server), but has never been exercised against Paymob's actual servers. Before go-live: get a real merchant account, set the five `Paymob:*` config keys via environment variables, and run one real sandbox transaction through the whole flow — start by confirming a computed HMAC matches what Paymob actually sends (flagged explicitly in `PaymobHmac`'s doc comment as the first thing to check if it doesn't).
+
+### Story 10.1 — `IPaymentGateway` abstraction + Paymob adapter ✅
 AC: interface covers initiate/verify-webhook/parse-webhook; no gateway-specific types leak outside Infrastructure.
-- [ ] T10.1.1 `IPaymentGateway` interface in Application
-- [ ] T10.1.2 Paymob adapter in Infrastructure
-- [ ] T10.1.3 API keys via environment/Key Vault config
+- [x] T10.1.1 `IPaymentGateway` interface in Application
+- [x] T10.1.2 Paymob adapter in Infrastructure
+- [x] T10.1.3 API keys via environment/Key Vault config
 - Size: M · Depends on: 9.2
+- Delivered: `IPaymentGateway` (Application/Payments) exposes exactly two members — `InitiateAsync`/`VerifyAndParseWebhook` — trading in generic records (`PaymentInitiationRequest/Result`, `VerifiedPaymentWebhook`) only; every Paymob-specific wire shape (`PaymobDtos.cs`) is `internal` to `CrowdCoffee.Infrastructure.Payments`. `PaymobGateway` implements Paymob's classic auth-token → register-order → payment-key → iframe-redirect flow (chosen over their newer unified-intention API for the widest documented card + Vodafone Cash + InstaPay coverage under one integration id, matching this doc's original Context & Decisions note). `PaymobOptions` (`Infrastructure/Configuration`) binds from a `Paymob` config section with every value defaulting to empty/zero in the committed `appsettings.json` — safe to commit since empty means "not configured," and `InitiateAsync` fails fast with a clear `Payment.NotConfigured` error (verified live: `409` with a message naming exactly what's missing) rather than calling Paymob with blank credentials. Production supplies real values via environment variables (`Paymob__ApiKey` etc.) per T10.1.3.
 
-### Story 10.2 — Hosted checkout (no inline card fields)
+### Story 10.2 — Hosted checkout (no inline card fields) ✅
 AC: hosted iframe/redirect replaces the mock's inline card fields — documented deviation.
-- [ ] T10.2.1 Paymob hosted-payment-page integration
-- [ ] T10.2.2 Return-URL handling back into the SPA
-- [ ] T10.2.3 UI copy making clear this deviates intentionally from the mock design
+- [x] T10.2.1 Paymob hosted-payment-page integration
+- [x] T10.2.2 Return-URL handling back into the SPA
+- [x] T10.2.3 UI copy making clear this deviates intentionally from the mock design
 - Size: M · Depends on: 10.1
+- Delivered: `CheckoutView.vue`'s payment-method card replaces `Checkout.dc.html`'s inline card-number/expiry/CVV fields (§9's "deliberate deviation from the mock") with a note explaining why ("you'll be redirected to our payment provider... we never see or store your card details") the moment Card or Wallet is selected — no card-shaped inputs exist anywhere in this codebase. On submit, `POST /api/payments/initiate` (`InitiatePaymentHandler`) returns the Paymob iframe URL and the browser is redirected there directly (`window.location.href`), landing on Paymob's own hosted page for the actual card entry — PCI scope stays at zero on this side. T10.2.2: since Paymob's classic integration redirects back to a URL configured once in the Paymob dashboard (not something this API can set per-request), added `/checkout/return` (`CheckoutReturnView.vue`) as that fixed landing point — it reads `merchant_order_id` off the redirect's own query string only to know *which* order to ask about, then polls the real `GET /api/orders/{id}` (new endpoint, `GetOrderHandler`) every 2s for up to 30s until the order reaches `Confirmed`/`Cancelled`, rather than trusting anything in the redirect URL itself as proof of payment — the webhook (Story 10.3) is the only thing that actually confirms an order. Verified live end-to-end: created a real `PendingPayment` card order, hit `/api/payments/initiate` and got the expected `Payment.NotConfigured` `409` (no live Paymob account, as noted above) — confirming the request reaches the gateway boundary correctly and fails safely rather than silently.
 
-### Story 10.3 — Webhook endpoint with HMAC verification
+### Story 10.3 — Webhook endpoint with HMAC verification ✅
 AC: rejects unsigned/mismatched callbacks; idempotent; confirmed payment drives `PendingPayment → Confirmed`.
-- [ ] T10.3.1 Webhook endpoint
-- [ ] T10.3.2 HMAC signature verification against Paymob's scheme
-- [ ] T10.3.3 Idempotent handling of repeat webhooks
-- [ ] T10.3.4 Wire confirmed payment to state machine transition (Epic 3.1) → triggers reservation (4.1)
+- [x] T10.3.1 Webhook endpoint
+- [x] T10.3.2 HMAC signature verification against Paymob's scheme
+- [x] T10.3.3 Idempotent handling of repeat webhooks
+- [x] T10.3.4 Wire confirmed payment to state machine transition (Epic 3.1) → triggers reservation (4.1)
 - Size: M · Depends on: 10.1, 3.1
+- Delivered: `POST /api/payments/webhook` reads the raw request body itself (not model-bound — `VerifyAndParseWebhook` needs the exact bytes the signature covers) plus the `hmac` query-string parameter, per Paymob's documented callback shape (confirmed via their published HMAC docs, not guessed: field order is `amount_cents, created_at, currency, error_occured, has_parent_transaction, id, integration_id, is_3d_secure, is_auth, is_capture, is_refunded, is_standalone_payment, is_voided, order.id, owner, pending, source_data.pan, source_data.sub_type, source_data.type, success`, concatenated raw-value-only with no separator, HMAC-SHA512, hex-compared with `CryptographicOperations.FixedTimeEquals` — see `PaymobHmac.cs`). A missing, tampered, or wrong signature is rejected outright (`Payment.InvalidSignature`, `401`) before any business logic runs — proven with 5 unit tests including one that signs a *different* amount than the tampered body claims. `IPaymentEventStore`/`PaymentEvent` (new `PaymentEvents` table, unique-indexed on `GatewayTransactionId`) backs idempotency: a repeat delivery of the same transaction id short-circuits to a no-op before touching the order at all — proven live and in an integration test that fires the identical signed payload twice and asserts stock reserves only once. A successful payment marks `PaymentStatus.Paid` and calls `order.TransitionTo(Confirmed, ...)` — the exact same mechanism Story 9.2's cash auto-confirm uses — which is what triggers `StockReservationService.ReserveForOrderAsync`; a failed payment marks `PaymentStatus.Failed` and cancels the order (§7's `PendingPayment --(failure)--> Cancelled` edge). One deliberate judgment call: if payment succeeds but the reservation check then fails (stock ran out between browsing and paying), the order is **left `Confirmed`/`Paid`, not rolled back** — the charge already happened and can't be undone from a webhook handler, so the safer failure mode is a loud `LogError` ("Manual intervention required — oversold item") with the order still visible to staff, rather than silently failing the webhook and having the gateway retry a doomed reservation forever. Verified fully live against the real running API: crafted and HMAC-signed a real webhook payload by hand (Node.js, independent of the C# implementation), posted it for a real `PendingPayment` card order, and confirmed the order flipped to `Confirmed`/`Paid` and the reconciliation view (Story 10.6) picked up the event — a genuine end-to-end proof, not just unit-level. Also 2 integration tests (`HandlePaymentWebhookIntegrationTests`) against real SQL Server covering the success and failure paths through `CreateOrderHandler` → webhook → final order state.
 
-### Story 10.4 — Server-side amount computation
+### Story 10.4 — Server-side amount computation ✅
 AC: charged amount read from DB order total, never from client payload.
-- [ ] T10.4.1 Gateway-initiate call reads `Order.Total` from persisted order
+- [x] T10.4.1 Gateway-initiate call reads `Order.Total` from persisted order
 - Size: S · Depends on: 10.1, 9.2
+- Delivered: `InitiatePaymentHandler` takes only an `OrderId` from the caller — it loads the order from `IOrderRepository` and passes `order.Total` (plus `order.OrderNumber`/`CustomerName`/`Phone` for the gateway's required billing fields) into `IPaymentGateway.InitiateAsync`; there is no code path by which a client-supplied amount could reach Paymob. Also rejects initiating payment for a Cash order (`Payment.NotApplicable`) or an order that isn't `PendingPayment` (`Payment.OrderNotPendingPayment`, e.g. already paid or cancelled) before ever calling the gateway.
 
-### Story 10.5 — Payment timeout job
+### Story 10.5 — Payment timeout job ✅
 AC: `PendingPayment` orders older than 30 min auto-cancel and release reservations.
-- [ ] T10.5.1 Background job scanning stale `PendingPayment` orders
-- [ ] T10.5.2 Invoke state machine cancel transition on timeout
+- [x] T10.5.1 Background job scanning stale `PendingPayment` orders
+- [x] T10.5.2 Invoke state machine cancel transition on timeout
 - Size: S · Depends on: 3.1, 3.3, 4.1
+- Delivered: `PaymentTimeoutJob` (`IHostedService`/`BackgroundService`, registered in `Program.cs`), polling every 5 minutes for `PendingPayment` orders older than 30 minutes (`IOrderRepository.GetStalePendingPaymentOrdersAsync`) and cancelling each via the real `Order.TransitionTo(Cancelled, "payment-timeout-job", ...)` — full `OrderStatusHistory` audit trail, not a raw status write. AC literally says "release reservations," but per Story 9.2/§8's design, a `PendingPayment` order never had anything reserved in the first place (that's the entire point of deferring reservation to `Confirmed`) — so there's structurally nothing to release here, and the (bug-fixed, see Story 9.2) domain-event wiring correctly raises no `OrderCancelledEvent` for a Pending/PendingPayment cancellation. A per-order timer was considered and rejected in favor of a simple poll: 30 minutes of slop on a background sweep is immaterial to the business and far simpler than scheduling one timer per pending checkout.
 
-### Story 10.6 — Reconciliation view
+### Story 10.6 — Reconciliation view ✅
 AC: manager sees gateway-confirmed payments vs. orders.
-- [ ] T10.6.1 Query joining payment records to orders
-- [ ] T10.6.2 Surface in admin (Epic 14) or dedicated screen
+- [x] T10.6.1 Query joining payment records to orders
+- [x] T10.6.2 Surface in admin (Epic 14) or dedicated screen
 - Size: M · Depends on: 10.3
+- Delivered: `GET /api/payments/reconciliation` (`GetReconciliationHandler`), one row per `PaymentEvent` joined against its order (`OrderNumber`/`Total`/`Status` — nullable, surfaced as an actual gap rather than silently dropped, for the should-be-rare case of a webhook naming an order id this DB never had) alongside the gateway's own transaction id/amount/success flag. Same `TODO(Epic 11)` unauthenticated-for-now pattern as `InventoryController` — no admin dashboard exists yet (that's Epic 14), so this is query-only for now, ready to be surfaced there once it exists. Verified live: after the Story 10.3 live webhook test, this endpoint correctly returned the one payment event joined to its now-`Confirmed` order.
+
+## Epic 10 status: ✅ complete (6/6 stories)
 
 ---
 

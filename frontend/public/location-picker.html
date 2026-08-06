@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H" crossorigin="anonymous">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous"></script>
+<style>
+  html, body { margin: 0; height: 100%; font-family: 'Space Grotesk', sans-serif; }
+  #map { position: absolute; inset: 0 0 60px 0; }
+  .bar { position: absolute; left: 0; right: 0; bottom: 0; height: 60px; background: white; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 0 14px; box-sizing: border-box; box-shadow: 0 -2px 12px rgba(0,0,0,0.08); }
+  button { border: none; border-radius: 100px; padding: 10px 16px; font-weight: 600; cursor: pointer; font-size: 13px; font-family: inherit; white-space: nowrap; }
+  #coords { font-size: 12px; color: #666; flex: 1; text-align: center; }
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div class="bar">
+  <button id="locBtn" style="background:#eee;color:#222;">Use my location</button>
+  <span id="coords">Drag the pin to your exact spot</span>
+  <button id="confirmBtn" style="background:oklch(56% 0.16 40);color:white;">Confirm pin</button>
+</div>
+<script>
+  // Default center: CROWD's New Mamsha Corniche location (§ visit info) — same coordinates the
+  // design mock ships with.
+  var start = [31.2565, 32.3019];
+  var map = L.map('map').setView(start, 15);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap contributors', maxZoom: 19 }).addTo(map);
+  var marker = L.marker(start, { draggable: true }).addTo(map);
+  var coordsEl = document.getElementById('coords');
+  function updateCoords(ll) { coordsEl.textContent = ll.lat.toFixed(5) + ', ' + ll.lng.toFixed(5); }
+  updateCoords(marker.getLatLng());
+  marker.on('drag', function (e) { updateCoords(e.target.getLatLng()); });
+  map.on('click', function (e) { marker.setLatLng(e.latlng); updateCoords(e.latlng); });
+  document.getElementById('locBtn').addEventListener('click', function () {
+    if (!navigator.geolocation) { return; }
+    navigator.geolocation.getCurrentPosition(function (pos) {
+      var ll = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      map.setView(ll, 16);
+      marker.setLatLng(ll);
+      updateCoords(ll);
+    }, function () { coordsEl.textContent = 'Could not get your location — drag the pin instead.'; });
+  });
+  document.getElementById('confirmBtn').addEventListener('click', function () {
+    var ll = marker.getLatLng();
+    // Contract per Checkout.dc.html / PRD §9.1: { type: 'crowd-location', lat, lng } posted to
+    // the parent window (the checkout page embeds this file in an iframe).
+    if (window.parent) { window.parent.postMessage({ type: 'crowd-location', lat: ll.lat, lng: ll.lng }, '*'); }
+    coordsEl.textContent = 'Pinned: ' + ll.lat.toFixed(5) + ', ' + ll.lng.toFixed(5);
+  });
+</script>
+</body>
+</html>

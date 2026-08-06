@@ -18,3 +18,36 @@ export function composeDrinkLineId(
   const syrupPart = [...syrupOptionIds].sort().join('-');
   return `${productId}::${milkOptionId}::${shotPart}::${syrupPart}`;
 }
+
+export interface DecomposedDrinkLine {
+  productId: string;
+  milkOptionId: string | null;
+  /** shotOptionId can't be recovered from a plain "shot" marker — only whether a shot was
+   * selected at all. Epic 9 checkout doesn't need the specific shot option id from the cart line
+   * (there's only ever one shot option in the seed data), so callers needing the id look it up
+   * from the product's modifier groups instead of trusting this decomposed value.
+   */
+  hasShot: boolean;
+  syrupOptionIds: string[];
+}
+
+/**
+ * Inverse of composeDrinkLineId, for Epic 9 checkout: the cart only stores the composed string
+ * id (Epic 8.1), so submitting an order needs to pull the productId/milk/syrup ids back out of
+ * it. Non-drink lines (Epic 6/7's plain `cart.add()`) have no "::" separators at all — those are
+ * just a bare product id, so this returns null for milk/syrups rather than guessing.
+ */
+export function decomposeDrinkLineId(id: string): DecomposedDrinkLine {
+  const parts = id.split('::');
+  if (parts.length !== 4) {
+    return { productId: id, milkOptionId: null, hasShot: false, syrupOptionIds: [] };
+  }
+
+  const [productId, milkOptionId, shotPart, syrupPart] = parts;
+  return {
+    productId,
+    milkOptionId,
+    hasShot: shotPart === 'shot',
+    syrupOptionIds: syrupPart ? syrupPart.split('-') : [],
+  };
+}

@@ -83,6 +83,10 @@ export const useCartStore = defineStore('cart', {
       this.lines = this.lines.filter((l) => l.id !== id);
       this.persistLines();
     },
+    clear() {
+      this.lines = [];
+      this.persistLines();
+    },
     setOrderMode(mode: OrderMode) {
       this.orderMode = mode;
       localStorage.setItem(ORDER_MODE_STORAGE_KEY, mode);

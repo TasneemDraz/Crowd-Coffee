@@ -27,11 +27,17 @@ export const router = createRouter({
       component: () => import('../views/CartView.vue'),
     },
     {
-      // Placeholder so the cart page's checkout button has somewhere to go before Epic 9 builds
-      // the real checkout flow (Checkout.dc.html: customer details, location pin, payment method).
       path: '/checkout',
       name: 'checkout',
-      component: () => import('../views/CheckoutPlaceholderView.vue'),
+      component: () => import('../views/CheckoutView.vue'),
+    },
+    {
+      // Where the payment gateway's hosted page redirects the browser after the customer pays
+      // or cancels (Epic 10.2) — configured as the integration's "transaction redirection URL"
+      // in the Paymob dashboard, not something this app can set per-request.
+      path: '/checkout/return',
+      name: 'checkout-return',
+      component: () => import('../views/CheckoutReturnView.vue'),
     },
   ],
 });

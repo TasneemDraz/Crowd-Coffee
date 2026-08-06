@@ -53,6 +53,18 @@ public class Order : IHasDomainEvents
     private readonly List<OrderItem> _items = [];
     public IReadOnlyCollection<OrderItem> Items => _items;
 
+    /// Epic 9 checkout: appends a priced/snapshotted line while the order is still being
+    /// assembled by CreateOrderHandler, before the first SaveChangesAsync.
+    public void AddItem(OrderItem item) => _items.Add(item);
+
+    /// Epic 10.3: set from the gateway webhook once its HMAC has been verified — never from an
+    /// unauthenticated client request. Deliberately independent of Status/TransitionTo: a payment
+    /// can be marked Paid or Failed without that alone deciding the order's lifecycle state
+    /// (the webhook handler calls TransitionTo separately for that).
+    public void MarkPaymentPaid() => PaymentStatus = PaymentStatus.Paid;
+
+    public void MarkPaymentFailed() => PaymentStatus = PaymentStatus.Failed;
+
     private readonly List<OrderStatusHistory> _statusHistory = [];
     public IReadOnlyCollection<OrderStatusHistory> StatusHistory => _statusHistory;
 
@@ -166,7 +178,12 @@ public class Order : IHasDomainEvents
 
         _statusHistory.Add(new OrderStatusHistory(Guid.NewGuid(), Id, previousStatus, newStatus, changedBy, occurredAtUtc, reason));
 
-        if (newStatus == OrderStatus.Cancelled)
+        // §8: stock is only ever reserved on the Confirmed transition — an order cancelled while
+        // still Pending/PendingPayment never had anything reserved. Raising OrderCancelledEvent
+        // for those would make ReleaseStockOnOrderCancelledHandler "release" ingredient
+        // quantities this order never held, incorrectly clawing back another order's legitimate
+        // reservation on the same StockItem. Only Confirmed/Preparing passed through Confirmed.
+        if (newStatus == OrderStatus.Cancelled && previousStatus is OrderStatus.Confirmed or OrderStatus.Preparing)
         {
             _domainEvents.Add(new OrderCancelledEvent(Id));
         }

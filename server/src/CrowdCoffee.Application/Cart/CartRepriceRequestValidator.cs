@@ -16,7 +16,8 @@ public class CartLineRepriceRequestValidator : AbstractValidator<CartLineReprice
     public CartLineRepriceRequestValidator()
     {
         RuleFor(l => l.ProductId).NotEmpty();
-        RuleFor(l => l.MilkOptionId).NotEmpty();
+        // Whether milk is required depends on the product's attached groups (checked in
+        // CartLineRepricer against live DB data) — not enforceable at this shape-only layer.
         RuleFor(l => l.SyrupOptionIds).Must(ids => ids.Count <= 2).WithMessage("At most 2 syrups are allowed.");
         RuleFor(l => l.Quantity).GreaterThan(0);
     }

@@ -2,13 +2,18 @@ using CrowdCoffee.Application.Cart;
 using CrowdCoffee.Application.Catalog;
 using CrowdCoffee.Application.Common;
 using CrowdCoffee.Application.Inventory;
+using CrowdCoffee.Application.Ordering;
+using CrowdCoffee.Application.Payments;
 using CrowdCoffee.Domain.Ordering;
+using CrowdCoffee.Infrastructure.Configuration;
+using CrowdCoffee.Infrastructure.Payments;
 using CrowdCoffee.Infrastructure.Persistence;
 using CrowdCoffee.Infrastructure.Persistence.Caching;
 using CrowdCoffee.Infrastructure.Persistence.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace CrowdCoffee.Infrastructure.Tests;
 
@@ -22,7 +27,10 @@ public static class TestServiceProviderFactory
 {
     private const string ConnectionString = "Server=.;Database=CrowdCoffee;Trusted_Connection=True;TrustServerCertificate=True";
 
-    public static ServiceProvider Build()
+    /// paymobHmacSecret lets webhook tests (Payments/HandlePaymentWebhookIntegrationTests) sign
+    /// requests with a secret they control, without needing real Paymob credentials — everything
+    /// else about PaymobGateway besides VerifyAndParseWebhook is untouched by those tests.
+    public static ServiceProvider Build(string paymobHmacSecret = "")
     {
         var services = new ServiceCollection();
 
@@ -49,6 +57,19 @@ public static class TestServiceProviderFactory
         services.AddScoped<GetProductModifiersHandler>();
 
         services.AddScoped<RepriceCartHandler>();
+
+        services.AddScoped<IUnitOfWork, EfUnitOfWork>();
+        services.AddScoped<IOrderRepository, OrderRepository>();
+        services.AddScoped<IOrderNumberGenerator, SqlOrderNumberGenerator>();
+        services.AddScoped<CreateOrderHandler>();
+
+        services.AddSingleton(Options.Create(new PaymobOptions { HmacSecret = paymobHmacSecret, ApiBaseUrl = "https://accept.paymob.com" }));
+        services.AddSingleton(new HttpClient { BaseAddress = new Uri("https://accept.paymob.com") });
+        services.AddScoped<IPaymentGateway, PaymobGateway>();
+        services.AddScoped<IPaymentEventStore, PaymentEventStore>();
+        services.AddScoped<InitiatePaymentHandler>();
+        services.AddScoped<HandlePaymentWebhookHandler>();
+        services.AddScoped<GetReconciliationHandler>();
 
         return services.BuildServiceProvider();
     }

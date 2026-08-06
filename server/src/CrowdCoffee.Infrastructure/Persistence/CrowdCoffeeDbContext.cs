@@ -28,6 +28,10 @@ public class CrowdCoffeeDbContext(DbContextOptions<CrowdCoffeeDbContext> options
 
     public DbSet<StaffUser> StaffUsers => Set<StaffUser>();
 
+    public DbSet<OrderNumberCounter> OrderNumberCounters => Set<OrderNumberCounter>();
+
+    public DbSet<PaymentEvent> PaymentEvents => Set<PaymentEvent>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(CrowdCoffeeDbContext).Assembly);

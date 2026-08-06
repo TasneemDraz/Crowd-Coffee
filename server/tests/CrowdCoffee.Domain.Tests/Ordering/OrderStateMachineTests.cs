@@ -226,15 +226,33 @@ public class OrderStateMachineTests
     }
 
     [Fact]
-    public void Cancellation_RaisesOrderCancelledDomainEvent()
+    public void Cancellation_FromConfirmed_RaisesOrderCancelledDomainEvent()
     {
+        // Only Confirmed (or later, pre-Ready) states ever had stock reserved (§8) — this is the
+        // case the release-stock handler exists for.
         var order = CreateCashOrder();
+        AdvanceTo(order, OrderStatus.Confirmed);
 
         order.TransitionTo(OrderStatus.Cancelled, "staff", Now);
 
         var domainEvent = Assert.Single(order.DomainEvents);
         var cancelled = Assert.IsType<OrderCancelledEvent>(domainEvent);
         Assert.Equal(order.Id, cancelled.OrderId);
+    }
+
+    [Theory]
+    [InlineData(OrderStatus.Pending)]
+    [InlineData(OrderStatus.PendingPayment)]
+    public void Cancellation_FromPendingOrPendingPayment_RaisesNoDomainEvent(OrderStatus fromStatus)
+    {
+        // Nothing was ever reserved for an order still awaiting confirmation/payment — raising
+        // OrderCancelledEvent here would make the release handler claw back stock this order
+        // never held (see the comment on Order.TransitionTo).
+        var order = fromStatus == OrderStatus.PendingPayment ? CreatePendingPaymentOrder() : CreateCashOrder();
+
+        order.TransitionTo(OrderStatus.Cancelled, "staff", Now);
+
+        Assert.Empty(order.DomainEvents);
     }
 
     [Fact]
@@ -251,7 +269,9 @@ public class OrderStateMachineTests
     public void ClearDomainEvents_EmptiesTheCollection()
     {
         var order = CreateCashOrder();
+        AdvanceTo(order, OrderStatus.Confirmed);
         order.TransitionTo(OrderStatus.Cancelled, "staff", Now);
+        Assert.NotEmpty(order.DomainEvents); // sanity: there's actually something to clear
 
         order.ClearDomainEvents();
 

@@ -41,6 +41,15 @@ public class StockReservationIntegrationTests
 
         try
         {
+            // Stock is only ever reserved once an order has actually reached Confirmed (§8) — an
+            // order cancelled while still Pending never had anything reserved to release, and
+            // Order.TransitionTo deliberately raises no OrderCancelledEvent for that case (it
+            // would otherwise claw back some other order's legitimate reservation on the same
+            // StockItem). Transition through Confirmed first so the cancel below is realistic.
+            var confirmResult = order.TransitionTo(OrderStatus.Confirmed, "integration-test", DateTime.UtcNow);
+            Assert.True(confirmResult.IsSuccess);
+            await dbContext.SaveChangesAsync();
+
             var reserveResult = await reservationService.ReserveForOrderAsync(order.Id, CancellationToken.None);
             Assert.True(reserveResult.IsSuccess);
 
