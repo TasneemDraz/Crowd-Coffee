@@ -14,6 +14,16 @@ public static class CairoClock
     public static DateOnly Today(DateTime utcNow) =>
         DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(utcNow, TimeZone));
 
+    /// Epic 14's dashboard: the UTC instant range covering one Cairo-local calendar day, for
+    /// querying "today's" orders by CreatedAt (UTC) without loading rows outside the shop's day
+    /// just to filter them out in memory.
+    public static (DateTime StartUtc, DateTime EndUtc) DayRangeUtc(DateOnly cairoDate)
+    {
+        var startLocal = DateTime.SpecifyKind(cairoDate.ToDateTime(TimeOnly.MinValue), DateTimeKind.Unspecified);
+        var endLocal = DateTime.SpecifyKind(cairoDate.AddDays(1).ToDateTime(TimeOnly.MinValue), DateTimeKind.Unspecified);
+        return (TimeZoneInfo.ConvertTimeToUtc(startLocal, TimeZone), TimeZoneInfo.ConvertTimeToUtc(endLocal, TimeZone));
+    }
+
     private static TimeZoneInfo ResolveTimeZone()
     {
         try

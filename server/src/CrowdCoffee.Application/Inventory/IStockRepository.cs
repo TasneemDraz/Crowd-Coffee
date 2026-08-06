@@ -19,6 +19,10 @@ public interface IStockRepository
 
     Task<IReadOnlyList<StockItem>> GetLowStockItemsAsync(CancellationToken cancellationToken);
 
+    /// Story 13.3's per-item ledger view. Newest first, capped — a shop-floor admin screen needs
+    /// recent activity, not the entire history of a years-old ingredient.
+    Task<IReadOnlyList<StockMovement>> GetMovementsForStockItemAsync(Guid stockItemId, int take, CancellationToken cancellationToken);
+
     Task<decimal> SumMovementsAsync(Guid stockItemId, CancellationToken cancellationToken);
 
     /// Backs the double-fulfillment guard (Story 4.2): has a Sale movement already been recorded

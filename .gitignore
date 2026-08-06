@@ -5,6 +5,9 @@ obj/
 .vs/
 logs/
 
+# Story 13.1: admin-uploaded product images (LocalImageStorage) — runtime content, not source.
+server/src/CrowdCoffee.Api/wwwroot/
+
 # Node / Vue (client, added in Epic 6)
 node_modules/
 dist/

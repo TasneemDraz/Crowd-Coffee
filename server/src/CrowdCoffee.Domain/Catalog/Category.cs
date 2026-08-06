@@ -22,4 +22,13 @@ public class Category
         DisplayOrder = displayOrder;
         IsActive = true;
     }
+
+    public void Update(string label, string? description, int displayOrder)
+    {
+        Label = label;
+        Description = description;
+        DisplayOrder = displayOrder;
+    }
+
+    public void SetActive(bool isActive) => IsActive = isActive;
 }

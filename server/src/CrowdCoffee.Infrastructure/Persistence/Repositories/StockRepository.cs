@@ -20,6 +20,13 @@ public class StockRepository(CrowdCoffeeDbContext dbContext) : IStockRepository
             .Where(s => s.IsActive && s.QuantityOnHand < s.ReorderPoint)
             .ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<StockMovement>> GetMovementsForStockItemAsync(Guid stockItemId, int take, CancellationToken cancellationToken) =>
+        await dbContext.StockMovements
+            .Where(m => m.StockItemId == stockItemId)
+            .OrderByDescending(m => m.CreatedAt)
+            .Take(take)
+            .ToListAsync(cancellationToken);
+
     public async Task<decimal> SumMovementsAsync(Guid stockItemId, CancellationToken cancellationToken) =>
         await dbContext.StockMovements
             .Where(m => m.StockItemId == stockItemId)

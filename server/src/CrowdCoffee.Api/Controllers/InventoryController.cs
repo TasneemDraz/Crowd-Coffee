@@ -12,6 +12,8 @@ namespace CrowdCoffee.Api.Controllers;
 public class InventoryController(
     ReconcileStockLedgerHandler reconcileHandler,
     GetLowStockItemsHandler lowStockHandler,
+    GetAllStockItemsHandler allStockItemsHandler,
+    GetStockMovementsHandler stockMovementsHandler,
     RecordPurchaseHandler purchaseHandler,
     IValidator<RecordPurchaseRequest> purchaseValidator,
     RecordWasteHandler wasteHandler,
@@ -32,6 +34,21 @@ public class InventoryController(
     {
         var items = await lowStockHandler.HandleAsync(cancellationToken);
         return Ok(items);
+    }
+
+    // Story 13.3: full on-hand/reserved/available list, not just items below ReorderPoint.
+    [HttpGet("stock")]
+    public async Task<IActionResult> GetAllStockItems(CancellationToken cancellationToken)
+    {
+        var items = await allStockItemsHandler.HandleAsync(cancellationToken);
+        return Ok(items);
+    }
+
+    [HttpGet("stock/{stockItemId:guid}/movements")]
+    public async Task<IActionResult> GetStockMovements(Guid stockItemId, CancellationToken cancellationToken)
+    {
+        var result = await stockMovementsHandler.HandleAsync(stockItemId, cancellationToken);
+        return result.ToActionResult(this);
     }
 
     [HttpPost("stock/purchase")]

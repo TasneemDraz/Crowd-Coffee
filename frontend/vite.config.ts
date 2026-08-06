@@ -21,6 +21,13 @@ export default defineConfig({
         changeOrigin: true,
         ws: true,
       },
+      // Story 13.1: admin-uploaded product images are served by the API's UseStaticFiles()
+      // straight from wwwroot/uploads — without this, <img src="/uploads/..."> 404s through the
+      // Vite dev server, which has no idea that path belongs to the API.
+      '/uploads': {
+        target: 'http://localhost:5076',
+        changeOrigin: true,
+      },
     },
   },
   test: {

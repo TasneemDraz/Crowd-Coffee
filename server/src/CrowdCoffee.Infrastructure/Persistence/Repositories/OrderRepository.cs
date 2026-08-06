@@ -34,6 +34,48 @@ public class OrderRepository(CrowdCoffeeDbContext dbContext) : IOrderRepository
             .OrderBy(o => o.CreatedAt)
             .ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<Order>> SearchOrdersAsync(OrderSearchFilters filters, CancellationToken cancellationToken)
+    {
+        var query = dbContext.Orders.AsNoTracking().AsQueryable();
+
+        if (filters.DateFrom is { } dateFrom)
+        {
+            query = query.Where(o => o.CreatedAt >= dateFrom.ToDateTime(TimeOnly.MinValue));
+        }
+
+        if (filters.DateTo is { } dateTo)
+        {
+            var exclusiveEnd = dateTo.AddDays(1).ToDateTime(TimeOnly.MinValue);
+            query = query.Where(o => o.CreatedAt < exclusiveEnd);
+        }
+
+        if (filters.Status is { } status)
+        {
+            query = query.Where(o => o.Status == status);
+        }
+
+        if (filters.Mode is { } mode)
+        {
+            query = query.Where(o => o.Mode == mode);
+        }
+
+        if (filters.PaymentMethod is { } paymentMethod)
+        {
+            query = query.Where(o => o.PaymentMethod == paymentMethod);
+        }
+
+        // No pagination UI exists yet (v1) — capped so an unfiltered search on a growing orders
+        // table can't pull back an unbounded result set.
+        return await query.OrderByDescending(o => o.CreatedAt).Take(200).ToListAsync(cancellationToken);
+    }
+
+    public async Task<Order?> GetByIdWithHistoryAsync(Guid orderId, CancellationToken cancellationToken) =>
+        await dbContext.Orders
+            .Include(o => o.Items)
+            .ThenInclude(i => i.Modifiers)
+            .Include(o => o.StatusHistory)
+            .FirstOrDefaultAsync(o => o.Id == orderId, cancellationToken);
+
     public void Add(Order order) => dbContext.Orders.Add(order);
 
     public async Task SaveChangesAsync(CancellationToken cancellationToken)

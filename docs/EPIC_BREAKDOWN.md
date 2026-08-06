@@ -534,46 +534,60 @@ AC: three columns (New/Preparing/Ready); modifiers spelled out without extra tap
 
 ## Epic 13 — Admin: Menu, Modifier & Stock Management
 
-### Story 13.1 — Menu management CRUD
+### Story 13.1 — Menu management CRUD ✅
 AC: create/edit products/categories, prices, `IsAvailable`, `DisplayOrder`, image upload; writes invalidate cache.
-- [ ] T13.1.1 Manager-role admin endpoints for product/category CRUD
-- [ ] T13.1.2 Image upload handling
-- [ ] T13.1.3 Vue admin views
-- [ ] T13.1.4 Wire writes to invalidate Epic 5.3 cache
+- [x] T13.1.1 Manager-role admin endpoints for product/category CRUD
+- [x] T13.1.2 Image upload handling
+- [x] T13.1.3 Vue admin views
+- [x] T13.1.4 Wire writes to invalidate Epic 5.3 cache
 - Size: L · Depends on: 5.1, 11.2
+- Delivered: `AdminCatalogController` (`api/admin/catalog`, `[Authorize(Policy = "ManagerOnly")]`) backs category/product create+update and image upload. `IAdminCatalogRepository` (new, `Application/Catalog`) is a deliberate second interface alongside Epic 5's `ICatalogRepository` — the existing one is a permanent `AsNoTracking`, active-only, DTO-projecting read model tuned for the customer `<200ms` budget, wrong shape entirely for admin writes that need a *tracked* entity, its own domain mutator calls, and visibility into inactive rows. `Category` gained `Update(...)`/`SetActive(...)` and `Product` gained `Activate()` (symmetric to its existing `Deactivate()`) — `ModifierOption` already had everything Story 13.2 needed from Epic 2. Every write handler calls `ICatalogCache.InvalidateAll()` after `SaveChangesAsync` — this is the actual closure of the `TODO(Epic 13)` Epic 5.3 left sitting in `ICatalogCache`'s own doc comment ("nothing calls it yet"), and it's proven, not assumed: an integration test primes the cache via `GetCategoriesHandler`, creates a category through the admin handler, and asserts the very next cached read reflects it. Image upload is a new `IImageStorage` port (Application/Common) + `LocalImageStorage` (Infrastructure) saving to `wwwroot/uploads/products` under a fresh Guid filename, validated (JPEG/PNG/WebP, ≤5MB) in `UploadProductImageHandler` before any file IO — no cloud object storage exists for this project, same "no live creds yet" situation as Epic 10's Paymob integration, swappable later without touching callers. `AdminMenuView.vue` is a single tabbed page (Categories/Products/Modifiers) with inline-edit table rows rather than modals — no design mock covers the admin area at all, so it reuses the existing OKLCH tokens like the staff login/kitchen board did. **Two real infrastructure bugs found and fixed while verifying live, neither specific to this story's own logic**: (1) `wwwroot` didn't exist anywhere in this repo until the very first image upload ever attempted — ASP.NET Core binds `IWebHostEnvironment.WebRootFileProvider` once, inside `WebApplication.CreateBuilder`, and silently falls back to a null provider for the rest of the process's life if the folder is missing at that exact moment; `LocalImageStorage` creating the folder at upload time was already too late. Fixed by creating `wwwroot/uploads/products` as the literal first line of `Program.cs`, before `CreateBuilder` runs. (2) `vite.config.ts`'s dev proxy only forwarded `/api` and `/hubs` (Epic 12) — `<img src="/uploads/...">` 404'd through `npm run dev` with no route to the API at all; added a matching `/uploads` proxy entry. Verified live end-to-end in Chrome + curl: uploaded a real JPEG, created a product referencing its URL, confirmed the thumbnail actually rendered (not a broken-image icon) in the admin table, and confirmed the new product appeared instantly in the *customer-facing* `GET /api/catalog/products` (proving cache invalidation), then deactivated both the test category and product and confirmed they vanished from the customer-facing lists again.
 
-### Story 13.2 — Modifier management
+### Story 13.2 — Modifier management ✅
 AC: edit price deltas/active state without rewriting historical snapshots.
-- [ ] T13.2.1 Admin endpoints for `ModifierGroup`/`ModifierOption` CRUD
+- [x] T13.2.1 Admin endpoints for `ModifierGroup`/`ModifierOption` CRUD
 - Size: M · Depends on: 13.1
+- Delivered: `PUT /api/admin/catalog/modifier-options/{id}` (`UpdateModifierOptionHandler`) — deliberately scoped to price delta + active state only, matching the AC's own narrow wording, not a full-entity PUT (renaming an option or moving it between groups isn't in scope). "Without rewriting historical snapshots" is satisfied structurally, not by anything new here: `OrderItemModifier` already snapshots `ModifierName`/`PriceDelta` at order-creation time (Epic 2.2/9.2), so mutating the live `ModifierOption` can't reach a single past order — the delivery note calls this out explicitly since it's the kind of thing that's easy to assume without checking. `AdminListModifierGroupsHandler` returns the full group→options tree (three groups, nineteen options — small enough for one query, no pagination needed) for the Modifiers tab in `AdminMenuView.vue`. Verified live: raised Oat Milk's delta from 40→45 via the admin UI, confirmed the change immediately, then reverted it to 40 before finishing (it's real seeded pricing data customers see, unlike the throwaway test category/product from Story 13.1).
 
-### Story 13.3 — Stock management UI
+### Story 13.3 — Stock management UI ✅
 AC: on-hand vs. reserved, record purchase/waste/adjustment, low-stock list, movement ledger per item.
-- [ ] T13.3.1 Admin stock views wired to Epic 4 commands/queries
-- [ ] T13.3.2 Ledger view per `StockItem`
+- [x] T13.3.1 Admin stock views wired to Epic 4 commands/queries
+- [x] T13.3.2 Ledger view per `StockItem`
 - Size: L · Depends on: 4.5, 4.6, 11.2
+- Delivered: mostly wiring existing Epic 4 machinery to new admin surface — `RecordPurchaseHandler`/`RecordWasteHandler`/`RecordAdjustmentHandler` and `IStockRepository.GetAllStockItemsAsync` already existed and needed no changes. Two genuinely new pieces: `GET /api/inventory/stock` (`GetAllStockItemsHandler`) for the full on-hand/reserved/available/reorder-point list (Epic 4.5's `GetLowStockItemsHandler` only ever returned items *below* reorder point, not the full picture), and `GET /api/inventory/stock/{id}/movements` (`GetStockMovementsHandler` + a new `IStockRepository.GetMovementsForStockItemAsync`, newest-first, capped at 200 rows) for the per-item ledger. `AdminStockView.vue` is one combined movement-recording form (item + Purchase/Waste/Adjustment + quantity + reason) above a table with an expand-in-place ledger per row, low-stock rows highlighted. Verified live: recorded a real purchase and waste movement against a fresh test `StockItem`, confirmed the ledger showed both newest-first with correct signs.
 
-### Story 13.4 — Order history
+### Story 13.4 — Order history ✅
 AC: filter by date/status/mode/payment method; view full `OrderStatusHistory`.
-- [ ] T13.4.1 Filtered order-history query endpoint
-- [ ] T13.4.2 Admin view with status-history detail
+- [x] T13.4.1 Filtered order-history query endpoint
+- [x] T13.4.2 Admin view with status-history detail
 - Size: M · Depends on: 9.2, 11.2
+- Delivered: `GET /api/admin/orders` (`SearchOrdersHandler`, `IOrderRepository.SearchOrdersAsync`) filters by date range/status/mode/payment method, `AsNoTracking`, capped at 200 rows (no pagination UI exists yet) — needs no `Items` include at all since `Order.Total` is already a stored column from Epic 9, not something that requires summing line items. `GET /api/admin/orders/{id}` (`GetOrderDetailHandler`) is a **new**, separate repository method (`GetByIdWithHistoryAsync`) rather than widening the existing `GetByIdAsync` — that method backs the checkout-return poll and the idempotency-key check, both of which fire far more often and never read status history; adding an unconditional `Include(StatusHistory)` there would tax a hotter path for a field only the admin detail view needs. `AdminOrderDetailDto` spells modifiers out per line the same way `KitchenOrderDto` does (Epic 12), independently defined rather than shared — Ordering and Kitchen stay sibling modules with no cross-reference. `AdminOrdersView.vue` is filters + a results table + a click-through detail side panel with a status-history timeline (`fromStatus → toStatus`, who, when, reason). Verified live: searched by status/mode/payment method against real orders, opened `CRW-260806-0027`'s detail and saw its actual `Confirmed → Preparing` history entry (the exact transition made during Epic 12's live verification) with the correct timestamp and `barista1` as the actor.
+
+## Epic 13 status: ✅ complete (4/4 stories)
 
 ---
 
 ## Epic 14 — Admin: Dashboard & Reporting
 
-### Story 14.1 — Daily dashboard metrics
+### Story 14.1 — Daily dashboard metrics ✅
 AC: today's revenue, order count, AOV, top-selling items, delivery vs. pickup split.
-- [ ] T14.1.1 Aggregation queries (read-optimized, not full aggregate loads)
-- [ ] T14.1.2 Dashboard view
+- [x] T14.1.1 Aggregation queries (read-optimized, not full aggregate loads)
+- [x] T14.1.2 Dashboard view
 - Size: M · Depends on: 9.2, 11.2
+- Delivered: `GET /api/admin/dashboard/today` (`GetDailyDashboardHandler` + new `Application/Dashboard` module). "Today" is the shop's Cairo-local calendar day, not UTC — same reasoning as Epic 9.2's `OrderNumber` sequence, and for the same reason `IDashboardRepository.GetTodayAggregateAsync` takes a raw UTC instant and resolves the day itself in Infrastructure (`DashboardRepository`) rather than Application computing a day range it can't correctly derive without `CairoClock`, which Application isn't allowed to reference under this project's one-way layering. Added `CairoClock.DayRangeUtc(DateOnly)` (returns the UTC instant range covering one Cairo-local day) alongside the existing `Today(DateTime)` helper. "Revenue" excludes orders never confirmed (`Pending`/`PendingPayment` — nothing sold yet) and cancelled orders. Every aggregate (`Sum`/`Count`/`GroupBy`) is pushed down to SQL via EF's LINQ translation, never a full `Order`/`OrderItem` load — per the AC's own "read-optimized" wording. **One EF Core translation quirk hit while building this**: `GroupBy(...).Select(g => new SomeRecord(g.Key, g.Sum(...)))` — projecting straight into a record's constructor inside a `GroupBy().Select()` — didn't translate to SQL in EF Core 8 (it tried to re-query the grouping via `AsQueryable().Sum(...)` instead of pushing `SUM` down), while the same aggregation into an anonymous type, then mapped to the record client-side afterward, translates cleanly; fixed `DashboardRepository`'s top-sellers query that way. `AdminDashboardView.vue` shows stat tiles (revenue, orders, AOV, delivery/pickup split) plus a top-5 list. Verified live via a real cash order placed through the actual `POST /api/orders` endpoint: dashboard's order count/revenue/delivery-vs-pickup split and top-sellers list all updated correctly on the next fetch.
 
-### Story 14.2 — Low-stock & reconciliation surfaced on dashboard
+### Story 14.2 — Low-stock & reconciliation surfaced on dashboard ✅
 AC: Epic 4.5 and Epic 10.6 reachable from dashboard.
-- [ ] T14.2.1 Dashboard widgets/links to low-stock and reconciliation views
+- [x] T14.2.1 Dashboard widgets/links to low-stock and reconciliation views
 - Size: S · Depends on: 14.1, 4.5, 10.6
 - Note (§14.6): who gets proactively notified of low stock, and how, is still open.
+- Delivered: `DailyDashboardDto` carries a `LowStockCount` (reusing Epic 4.5's `IStockRepository.GetLowStockItemsAsync` directly in `GetDailyDashboardHandler` — no new query) so the dashboard tile shows a live badge without a second round trip; the tile links through to `/admin/stock` (Story 13.3) for the actual list. Epic 10.6's reconciliation endpoint (`GET /api/payments/reconciliation`) had never been surfaced anywhere in the UI before this — its own delivery note said "ready to be surfaced there once it exists" — so this is genuinely the first screen for it: `AdminReconciliationView.vue` (new, `/admin/reconciliation`) plus a dashboard tile linking to it. §14.6 remains unanswered and out of scope here, same as noted at Epic 4.5's delivery.
+
+## Epic 14 status: ✅ complete (2/2 stories)
+
+**Also fixed in this pass, discovered while verifying Epic 13/14 live** (not scoped to either epic specifically):
+- **Router-guard race condition** (`frontend/src/router/index.ts`, `frontend/src/stores/auth.ts`): vue-router starts resolving the initial route the moment `app.use(router)` runs in `main.ts` — which happens *before* `main.ts`'s own `tryRestoreSession().finally(() => app.mount(...))` sequence finishes. A page reload on any `requiresStaff`/`requiresManager` route (e.g. hitting F5 on `/admin/dashboard`) would see `isAuthenticated` still false and bounce to `/staff/login`, even with a perfectly valid refresh cookie — the redirect committed before the restore fetch resolved. This was live and reproducible, not a hypothetical: caught it firsthand navigating straight to `/admin/dashboard` after login. Fixed by memoizing `tryRestoreSession()` on a module-level promise and having the router guard itself `await` it before deciding, so both call sites (main.ts's early kick-off and the guard's authoritative check) share one in-flight request instead of racing.
+- **`StaffSeedData` produced a spurious migration on every `dotnet ef migrations add`**: it called `BCrypt.HashPassword(...)` live inside the `StaffUsers` property getter, and BCrypt salts randomly per call — so the *same* password produces a different (still valid) hash every time the seed data is evaluated, and EF saw that as "the seed data changed" on every future migration generation. Replaced with the hash literals already baked into the original `AddStaffAuth` migration (Epic 11) — computed once, hardcoded, verified still logs in correctly.
 
 ---
 

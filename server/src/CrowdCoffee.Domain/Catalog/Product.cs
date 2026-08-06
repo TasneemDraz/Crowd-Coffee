@@ -48,4 +48,6 @@ public class Product
     public void SetDisplayOrder(int displayOrder) => DisplayOrder = displayOrder;
 
     public void Deactivate() => IsActive = false;
+
+    public void Activate() => IsActive = true;
 }

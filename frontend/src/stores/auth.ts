@@ -2,6 +2,15 @@ import { defineStore } from 'pinia';
 import { login as apiLogin, logout as apiLogout, refresh as apiRefresh, ApiError } from '../api/auth';
 import type { StaffRole } from '../types/auth';
 
+// Module-scoped (not store state) so it survives being requested from two places without
+// double-firing the network call: main.ts kicks restoration off before mount, and the router
+// guard (router/index.ts) awaits this same in-flight promise before deciding whether a
+// requiresStaff/requiresManager route may proceed — vue-router starts resolving the initial
+// route as soon as the router is installed (app.use(router)), which happens before main.ts's own
+// `.finally(() => app.mount(...))` callback fires, so the guard cannot simply trust
+// isAuthenticated on that very first navigation without waiting for this itself.
+let restoreSessionPromise: Promise<void> | null = null;
+
 /**
  * Access token lives only in memory (this store's state), never localStorage — an XSS payload
  * that can read localStorage can read a token there, but one that only runs JS still can't reach
@@ -42,19 +51,26 @@ export const useAuthStore = defineStore('auth', {
       this.username = null;
       this.role = null;
     },
-    /** Called once on app load: exchanges the httpOnly refresh cookie (if any/still valid) for a
-     * fresh access token, so a reload doesn't force a re-login. Failure just means "not logged
-     * in" — not an error worth surfacing. */
-    async tryRestoreSession() {
-      try {
-        const auth = await apiRefresh();
-        this.applyAuthResponse(auth);
-      } catch {
-        this.accessToken = null;
-        this.expiresAt = null;
-      } finally {
-        this.restoring = false;
+    /** Exchanges the httpOnly refresh cookie (if any/still valid) for a fresh access token, so a
+     * reload doesn't force a re-login. Failure just means "not logged in" — not an error worth
+     * surfacing. Memoized on the module-level promise above: safe to call from both main.ts and
+     * the router guard without triggering the network request twice. */
+    tryRestoreSession(): Promise<void> {
+      if (!restoreSessionPromise) {
+        restoreSessionPromise = (async () => {
+          try {
+            const auth = await apiRefresh();
+            this.applyAuthResponse(auth);
+          } catch {
+            this.accessToken = null;
+            this.expiresAt = null;
+          } finally {
+            this.restoring = false;
+          }
+        })();
       }
+
+      return restoreSessionPromise;
     },
     /** Returns a live access token, transparently refreshing first if the current one is at or
      * near expiry — call sites (kitchen board API calls, SignalR's accessTokenFactory) don't need

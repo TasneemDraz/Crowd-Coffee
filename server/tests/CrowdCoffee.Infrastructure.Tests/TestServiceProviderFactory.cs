@@ -1,6 +1,7 @@
 using CrowdCoffee.Application.Cart;
 using CrowdCoffee.Application.Catalog;
 using CrowdCoffee.Application.Common;
+using CrowdCoffee.Application.Dashboard;
 using CrowdCoffee.Application.Inventory;
 using CrowdCoffee.Application.Kitchen;
 using CrowdCoffee.Application.Ordering;
@@ -57,6 +58,23 @@ public static class TestServiceProviderFactory
         services.AddScoped<GetProductsHandler>();
         services.AddScoped<GetProductModifiersHandler>();
 
+        services.AddScoped<IAdminCatalogRepository, AdminCatalogRepository>();
+        services.AddScoped<AdminListCategoriesHandler>();
+        services.AddScoped<CreateCategoryHandler>();
+        services.AddScoped<UpdateCategoryHandler>();
+        services.AddScoped<AdminListProductsHandler>();
+        services.AddScoped<CreateProductHandler>();
+        services.AddScoped<UpdateProductHandler>();
+        services.AddScoped<AdminListModifierGroupsHandler>();
+        services.AddScoped<UpdateModifierOptionHandler>();
+
+        services.AddScoped<GetAllStockItemsHandler>();
+        services.AddScoped<GetStockMovementsHandler>();
+        services.AddScoped<RecordPurchaseHandler>();
+        services.AddScoped<RecordWasteHandler>();
+        services.AddScoped<RecordAdjustmentHandler>();
+        services.AddScoped<GetLowStockItemsHandler>();
+
         services.AddScoped<RepriceCartHandler>();
 
         services.AddScoped<IUnitOfWork, EfUnitOfWork>();
@@ -64,7 +82,12 @@ public static class TestServiceProviderFactory
         services.AddScoped<IOrderNumberGenerator, SqlOrderNumberGenerator>();
         services.AddScoped<CreateOrderHandler>();
         services.AddScoped<AdvanceOrderStatusHandler>();
+        services.AddScoped<SearchOrdersHandler>();
+        services.AddScoped<GetOrderDetailHandler>();
         services.AddScoped<GetKitchenBoardOrdersHandler>();
+
+        services.AddScoped<IDashboardRepository, DashboardRepository>();
+        services.AddScoped<GetDailyDashboardHandler>();
 
         services.AddSingleton(Options.Create(new PaymobOptions { HmacSecret = paymobHmacSecret, ApiBaseUrl = "https://accept.paymob.com" }));
         services.AddSingleton(new HttpClient { BaseAddress = new Uri("https://accept.paymob.com") });

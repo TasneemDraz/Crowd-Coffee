@@ -18,6 +18,15 @@ public interface IOrderRepository
     /// so the board reads as a FIFO queue.
     Task<IReadOnlyList<Order>> GetActiveKitchenOrdersAsync(CancellationToken cancellationToken);
 
+    /// Story 13.4's order-history screen. AsNoTracking, no Items include — Order.Total is a
+    /// stored, precomputed column (Epic 9), so the summary list needs no join at all.
+    Task<IReadOnlyList<Order>> SearchOrdersAsync(OrderSearchFilters filters, CancellationToken cancellationToken);
+
+    /// Separate from GetByIdAsync (used by the checkout-return poll and the idempotency check —
+    /// both hot-ish paths that don't need status history) so those callers don't pay for an extra
+    /// join they never read.
+    Task<Order?> GetByIdWithHistoryAsync(Guid orderId, CancellationToken cancellationToken);
+
     void Add(Order order);
 
     Task SaveChangesAsync(CancellationToken cancellationToken);

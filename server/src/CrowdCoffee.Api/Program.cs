@@ -4,6 +4,7 @@ using CrowdCoffee.Application.Auth;
 using CrowdCoffee.Application.Cart;
 using CrowdCoffee.Application.Catalog;
 using CrowdCoffee.Application.Common;
+using CrowdCoffee.Application.Dashboard;
 using CrowdCoffee.Application.Diagnostics;
 using CrowdCoffee.Application.Inventory;
 using CrowdCoffee.Application.Kitchen;
@@ -17,6 +18,7 @@ using CrowdCoffee.Infrastructure.Persistence;
 using CrowdCoffee.Infrastructure.Persistence.Caching;
 using CrowdCoffee.Infrastructure.Payments;
 using CrowdCoffee.Infrastructure.Persistence.Repositories;
+using CrowdCoffee.Infrastructure.Storage;
 using FluentValidation;
 using HealthChecks.UI.Client;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -27,6 +29,16 @@ using Microsoft.IdentityModel.Tokens;
 using Serilog;
 using System.Text;
 using System.Threading.RateLimiting;
+
+// Story 13.1: ASP.NET Core binds IWebHostEnvironment.WebRootFileProvider once, inside
+// WebApplication.CreateBuilder below — if wwwroot doesn't exist on disk at that exact moment, it
+// silently falls back to a null provider for the app's entire lifetime, and UseStaticFiles()
+// later 404s every request even after LocalImageStorage creates the folder on first upload. This
+// repo has no wwwroot at all until the very first image upload, so that's not a hypothetical —
+// it's what happens on every fresh checkout. Creating it before CreateBuilder runs is what
+// actually fixes it (LocalImageStorage's own Directory.CreateDirectory call, at upload time, is
+// already too late).
+Directory.CreateDirectory(Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "products"));
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -74,6 +86,8 @@ builder.Services.AddScoped<RecordPurchaseHandler>();
 builder.Services.AddScoped<RecordWasteHandler>();
 builder.Services.AddScoped<RecordAdjustmentHandler>();
 builder.Services.AddScoped<GetLowStockItemsHandler>();
+builder.Services.AddScoped<GetAllStockItemsHandler>();
+builder.Services.AddScoped<GetStockMovementsHandler>();
 
 builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<ICatalogCache, MemoryCatalogCache>();
@@ -83,6 +97,18 @@ builder.Services.AddScoped<GetCategoriesHandler>();
 builder.Services.AddScoped<GetProductsHandler>();
 builder.Services.AddScoped<GetProductModifiersHandler>();
 
+builder.Services.AddScoped<IAdminCatalogRepository, AdminCatalogRepository>();
+builder.Services.AddScoped<AdminListCategoriesHandler>();
+builder.Services.AddScoped<CreateCategoryHandler>();
+builder.Services.AddScoped<UpdateCategoryHandler>();
+builder.Services.AddScoped<AdminListProductsHandler>();
+builder.Services.AddScoped<CreateProductHandler>();
+builder.Services.AddScoped<UpdateProductHandler>();
+builder.Services.AddScoped<AdminListModifierGroupsHandler>();
+builder.Services.AddScoped<UpdateModifierOptionHandler>();
+builder.Services.AddScoped<IImageStorage, LocalImageStorage>();
+builder.Services.AddScoped<UploadProductImageHandler>();
+
 builder.Services.AddScoped<RepriceCartHandler>();
 
 builder.Services.AddScoped<IUnitOfWork, EfUnitOfWork>();
@@ -91,10 +117,15 @@ builder.Services.AddScoped<IOrderNumberGenerator, SqlOrderNumberGenerator>();
 builder.Services.AddScoped<CreateOrderHandler>();
 builder.Services.AddScoped<GetOrderHandler>();
 builder.Services.AddScoped<AdvanceOrderStatusHandler>();
+builder.Services.AddScoped<SearchOrdersHandler>();
+builder.Services.AddScoped<GetOrderDetailHandler>();
 
 builder.Services.AddScoped<GetKitchenBoardOrdersHandler>();
 builder.Services.AddScoped<IDomainEventHandler<OrderStatusChangedEvent>, BroadcastOrderStatusChangedHandler>();
 builder.Services.AddSignalR();
+
+builder.Services.AddScoped<IDashboardRepository, DashboardRepository>();
+builder.Services.AddScoped<GetDailyDashboardHandler>();
 
 builder.Services.AddHttpClient<IPaymentGateway, PaymobGateway>((sp, client) =>
 {
@@ -200,6 +231,10 @@ app.UseSerilogRequestLogging();
 app.UseMiddleware<CorrelationIdMiddleware>();
 
 app.UseHttpsRedirection();
+
+// Story 13.1: serves LocalImageStorage's saved files straight back out from wwwroot/uploads —
+// public/unauthenticated, same as any other menu image (product photos aren't sensitive).
+app.UseStaticFiles();
 
 app.UseAuthentication();
 app.UseAuthorization();
