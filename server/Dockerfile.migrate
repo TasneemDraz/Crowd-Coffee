@@ -1,0 +1,22 @@
+# Story 17.1/17.2: one-shot migration runner. Applies pending EF Core migrations against
+# whatever Database:ConnectionString env var it's given, then exits — docker-compose gates the
+# api service on this container finishing successfully (service_completed_successfully) rather
+# than the app calling Database.Migrate() on every boot. Deliberate: with more than one api
+# replica, auto-migrate-on-boot means every replica races to apply the same migration
+# concurrently; a single separate step run once per deploy avoids that entirely. See
+# docs/DEPLOYMENT.md for the full rationale and the production (non-Docker) equivalent.
+FROM mcr.microsoft.com/dotnet/sdk:8.0
+WORKDIR /src
+
+COPY Directory.Build.props .
+COPY src/CrowdCoffee.Domain/CrowdCoffee.Domain.csproj src/CrowdCoffee.Domain/
+COPY src/CrowdCoffee.Application/CrowdCoffee.Application.csproj src/CrowdCoffee.Application/
+COPY src/CrowdCoffee.Infrastructure/CrowdCoffee.Infrastructure.csproj src/CrowdCoffee.Infrastructure/
+COPY src/CrowdCoffee.Api/CrowdCoffee.Api.csproj src/CrowdCoffee.Api/
+RUN dotnet restore src/CrowdCoffee.Api/CrowdCoffee.Api.csproj
+
+COPY src/ src/
+RUN dotnet tool install --global dotnet-ef --version 8.*
+ENV PATH="$PATH:/root/.dotnet/tools"
+
+ENTRYPOINT ["dotnet", "ef", "database", "update", "--project", "src/CrowdCoffee.Infrastructure", "--startup-project", "src/CrowdCoffee.Api"]

@@ -31,3 +31,36 @@ export function playNewOrderAlert(): void {
     // AudioContext shouldn't break the rest of the page.
   }
 }
+
+/**
+ * Story 15.1 (T15.1.1): a cancelled order still on the board (a barista was actively preparing
+ * it) needs a distinct alert from "new order" — it means "stop," not "start." Falling tones
+ * (vs. the new-order chime's rising 880->1175Hz pair) and a third, lower note make the two
+ * unmistakable apart even without looking at the screen.
+ */
+export function playOrderCancelledAlert(): void {
+  try {
+    const context = new AudioContext();
+    const now = context.currentTime;
+
+    [660, 440, 330].forEach((frequency, index) => {
+      const oscillator = context.createOscillator();
+      const gain = context.createGain();
+      oscillator.type = 'square';
+      oscillator.frequency.value = frequency;
+
+      const start = now + index * 0.16;
+      gain.gain.setValueAtTime(0, start);
+      gain.gain.linearRampToValueAtTime(0.25, start + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, start + 0.2);
+
+      oscillator.connect(gain).connect(context.destination);
+      oscillator.start(start);
+      oscillator.stop(start + 0.22);
+    });
+
+    setTimeout(() => context.close(), 700);
+  } catch {
+    // Same rationale as playNewOrderAlert — never let audio failures break the board.
+  }
+}

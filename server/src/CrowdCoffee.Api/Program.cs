@@ -8,12 +8,14 @@ using CrowdCoffee.Application.Dashboard;
 using CrowdCoffee.Application.Diagnostics;
 using CrowdCoffee.Application.Inventory;
 using CrowdCoffee.Application.Kitchen;
+using CrowdCoffee.Application.Notifications;
 using CrowdCoffee.Application.Ordering;
 using CrowdCoffee.Application.Payments;
 using CrowdCoffee.Domain.Ordering;
 using CrowdCoffee.Domain.Staff;
 using CrowdCoffee.Infrastructure.Auth;
 using CrowdCoffee.Infrastructure.Configuration;
+using CrowdCoffee.Infrastructure.Notifications;
 using CrowdCoffee.Infrastructure.Persistence;
 using CrowdCoffee.Infrastructure.Persistence.Caching;
 using CrowdCoffee.Infrastructure.Payments;
@@ -51,6 +53,7 @@ builder.Host.UseSerilog((context, services, loggerConfig) => loggerConfig
 builder.Services.Configure<DatabaseOptions>(builder.Configuration.GetSection(DatabaseOptions.SectionName));
 builder.Services.Configure<PaymobOptions>(builder.Configuration.GetSection(PaymobOptions.SectionName));
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
+builder.Services.Configure<CorsOptions>(builder.Configuration.GetSection(CorsOptions.SectionName));
 
 var jwtOptions = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>()
     ?? throw new InvalidOperationException("Jwt configuration section is missing.");
@@ -58,10 +61,36 @@ var jwtOptions = builder.Configuration.GetSection(JwtOptions.SectionName).Get<Jw
 var connectionString = builder.Configuration.GetSection(DatabaseOptions.SectionName)["ConnectionString"]
     ?? throw new InvalidOperationException("Database:ConnectionString is not configured.");
 
+var corsOptions = builder.Configuration.GetSection(CorsOptions.SectionName).Get<CorsOptions>() ?? new CorsOptions();
+builder.Services.AddCors(options =>
+{
+    // T16.1.2: no origins configured means no cross-origin caller is trusted, not "allow
+    // everything" — WithOrigins([]) simply never matches, which is the correct fail-closed
+    // default for an unconfigured environment rather than falling back to AllowAnyOrigin.
+    options.AddPolicy(CorsOptions.PolicyName, policy => policy
+        .WithOrigins(corsOptions.AllowedOrigins)
+        .AllowAnyHeader()
+        .AllowAnyMethod()
+        .AllowCredentials());
+});
+
+// T16.1.1: HSTS only makes sense once the app is actually served over https — forcing it in
+// local http:// dev would make the browser refuse to fall back to http on this machine at all.
+if (!builder.Environment.IsDevelopment())
+{
+    builder.Services.AddHsts(options =>
+    {
+        options.MaxAge = TimeSpan.FromDays(365);
+        options.IncludeSubDomains = true;
+    });
+}
+
 builder.Services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
 builder.Services.AddScoped<IDomainEventHandler<OrderCancelledEvent>, LoggingOrderCancelledHandler>();
 builder.Services.AddScoped<IDomainEventHandler<OrderCancelledEvent>, ReleaseStockOnOrderCancelledHandler>();
 builder.Services.AddScoped<IDomainEventHandler<OrderCompletedEvent>, FulfillStockOnOrderCompletedHandler>();
+builder.Services.AddScoped<INotificationService, LoggingNotificationService>();
+builder.Services.AddScoped<IDomainEventHandler<OrderStatusChangedEvent>, SendCustomerNotificationOnOrderStatusChangedHandler>();
 
 builder.Services.AddDbContext<CrowdCoffeeDbContext>(options => options.UseSqlServer(connectionString));
 
@@ -229,12 +258,20 @@ if (app.Environment.IsDevelopment())
 app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
 app.UseSerilogRequestLogging();
 app.UseMiddleware<CorrelationIdMiddleware>();
+app.UseMiddleware<SecurityHeadersMiddleware>();
+
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHsts();
+}
 
 app.UseHttpsRedirection();
 
 // Story 13.1: serves LocalImageStorage's saved files straight back out from wwwroot/uploads —
 // public/unauthenticated, same as any other menu image (product photos aren't sensitive).
 app.UseStaticFiles();
+
+app.UseCors(CorsOptions.PolicyName);
 
 app.UseAuthentication();
 app.UseAuthorization();

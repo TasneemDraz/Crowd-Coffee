@@ -22,7 +22,15 @@
   --color-bg-alt: oklch(94% 0.015 75);
   --color-bg-tint: oklch(95% 0.01 75);
 
-  --color-border-idle: oklch(85% 0.01 70);
+  /* Story 16.3 (T16.3.3): this is the border used on nearly every real interactive control —
+     text inputs, selects, toggle buttons, qty steppers, category chips — where it's the only
+     visual cue marking the control's boundary. WCAG 1.4.11 needs 3:1 against the surface it
+     sits on; the original 85% lightness measured ~1.4:1 (verified via OKLCH->sRGB conversion +
+     WCAG relative-luminance contrast). 64% clears 3:1 against both --color-bg and white while
+     keeping the same neutral hue/chroma, so it reads as "slightly bolder," not a new color. */
+  --color-border-idle: oklch(64% 0.01 70);
+  /* Decorative-only dividers (card borders, table row separators) that aren't the sole boundary
+     of an interactive control — WCAG 1.4.11 doesn't apply, left at the original soft value. */
   --color-border-soft: oklch(90% 0.01 70);
 
   --color-white: oklch(99% 0.01 75);

@@ -65,7 +65,8 @@ const emit = defineEmits<{ select: [mode: OrderMode] }>();
 .order-mode__btn--active {
   border-color: var(--color-accent);
   background: var(--color-accent-surface);
-  color: var(--color-accent);
+  /* Story 16.3 (T16.3.3): accent-hover, not accent — see KitchenBoardView's identical fix. */
+  color: var(--color-accent-hover);
 }
 
 .order-mode__note {

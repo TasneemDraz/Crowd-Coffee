@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import type { ModifierGroupDto, ProductDto } from '../../types/catalog';
 import { useModifiers } from '../../composables/useModifiers';
 import type { CartLine } from '../../stores/cart';
@@ -19,6 +19,8 @@ const selectedShotId = ref<string | null>(null);
 const selectedSyrupIds = ref<string[]>([]);
 const qty = ref(1);
 
+const closeButtonEl = ref<HTMLButtonElement | null>(null);
+
 async function load() {
   isLoading.value = true;
   error.value = null;
@@ -33,12 +35,31 @@ async function load() {
   } finally {
     isLoading.value = false;
   }
+
+  // Story 16.3 (T16.3.1): move focus into the dialog on open — without this, focus stays on
+  // whatever menu "Add" button triggered it, so a screen-reader/keyboard user gets no signal
+  // a dialog just opened over the page.
+  await nextTick();
+  closeButtonEl.value?.focus();
 }
 
 onMounted(load);
 // The modal component instance can be reused across products (parent keeps one <DrinkCustomizeModal>
 // and swaps the prop) rather than remounted — reload whenever the target product changes.
 watch(() => props.product.id, load);
+
+// Story 16.3 (T16.3.1): a keyboard-only user has no way to dismiss this modal without Escape —
+// the overlay's click-to-close only fires on a pointer event. The close button already covers
+// the "give focus somewhere obvious" half of the standard modal pattern (it's the first
+// focusable element in DOM order), so this just adds the other half.
+function onKeydown(event: KeyboardEvent) {
+  if (event.key === 'Escape') {
+    emit('close');
+  }
+}
+
+onMounted(() => window.addEventListener('keydown', onKeydown));
+onUnmounted(() => window.removeEventListener('keydown', onKeydown));
 
 const milkGroup = computed(() => groups.value.find((g) => g.slug === 'milk') ?? null);
 const shotGroup = computed(() => groups.value.find((g) => g.slug === 'shot') ?? null);
@@ -126,7 +147,7 @@ function confirm() {
   <div class="modal-overlay" @click.self="emit('close')">
     <div class="modal-sheet" role="dialog" aria-modal="true" :aria-label="product.name">
       <div class="modal-header">
-        <button type="button" class="modal-close" aria-label="Close" @click="emit('close')">×</button>
+        <button ref="closeButtonEl" type="button" class="modal-close" aria-label="Close" @click="emit('close')">×</button>
         <span class="modal-header__title">{{ product.name }}</span>
         <span class="modal-header__spacer" />
       </div>

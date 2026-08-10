@@ -5,7 +5,7 @@ import { HubConnectionState } from '@microsoft/signalr';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import { advanceOrder, connectOrderHub, getKitchenBoard, ApiError } from '../api/kitchen';
-import { playNewOrderAlert } from '../lib/alertSound';
+import { playNewOrderAlert, playOrderCancelledAlert } from '../lib/alertSound';
 import type { KitchenOrder } from '../types/kitchen';
 
 const BOARD_STATUSES = ['Confirmed', 'Preparing', 'Ready'] as const;
@@ -49,6 +49,13 @@ function applyIncomingOrder(order: KitchenOrder) {
   if (!(BOARD_STATUSES as readonly string[]).includes(order.status)) {
     // Left the board (picked up, out for delivery, delivered, cancelled, ...).
     if (existingIndex !== -1) {
+      // Story 15.1: only Cancelled means "a barista may already be mid-prep on this — stop."
+      // PickedUp/OutForDelivery/Delivered are normal, expected departures from the board and
+      // don't warrant an alert (advancing an order yourself already gives instant visual
+      // feedback via applyIncomingOrder's own optimistic call in advance()).
+      if (order.status === 'Cancelled') {
+        playOrderCancelledAlert();
+      }
       orders.value.splice(existingIndex, 1);
     }
     return;
@@ -217,7 +224,9 @@ onUnmounted(() => {
 
 .card-head .tag-pill {
   background: var(--color-accent-surface);
-  color: var(--color-accent);
+  /* Story 16.3 (T16.3.3): --color-accent text on --color-accent-surface measures ~4.1:1,
+     just under AA's 4.5:1 for this pill's small text — accent-hover clears it (~6.3:1). */
+  color: var(--color-accent-hover);
 }
 
 .customer {

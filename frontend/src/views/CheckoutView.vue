@@ -181,11 +181,16 @@ const deliverySummary = computed(() => {
 
           <div class="checkout-card">
             <h3>Your details</h3>
-            <input v-model="name" placeholder="Full name" class="checkout-input" />
-            <input v-model="phone" placeholder="Phone number" class="checkout-input" />
+            <input v-model="name" placeholder="Full name" aria-label="Full name" class="checkout-input" />
+            <input v-model="phone" placeholder="Phone number" aria-label="Phone number" class="checkout-input" />
 
             <template v-if="isDelivery">
-              <input v-model="address" placeholder="Delivery address" class="checkout-input checkout-input--spaced" />
+              <input
+                v-model="address"
+                placeholder="Delivery address"
+                aria-label="Delivery address"
+                class="checkout-input checkout-input--spaced"
+              />
               <p class="checkout-hint">Pin your exact location so the rider finds you fast:</p>
               <iframe src="/location-picker.html" title="Pin your delivery location" class="checkout-location-frame"></iframe>
               <p v-if="lat !== null" class="checkout-pin-label">Pinned: {{ lat!.toFixed(5) }}, {{ lng!.toFixed(5) }}</p>
@@ -383,7 +388,8 @@ const deliverySummary = computed(() => {
 .checkout-payment-btn--active {
   border-color: var(--color-accent);
   background: var(--color-accent-surface);
-  color: var(--color-accent);
+  /* Story 16.3 (T16.3.3): accent-hover, not accent — see KitchenBoardView's identical fix. */
+  color: var(--color-accent-hover);
 }
 
 .checkout-error {

@@ -27,7 +27,7 @@
       </p>
       <div class="story__tags">
         <span class="tag-pill" style="background: var(--color-accent-green-surface); color: var(--color-accent-green)">FAMILY OWNED</span>
-        <span class="tag-pill" style="background: var(--color-accent-surface); color: var(--color-accent)">SPECIALTY GRADE</span>
+        <span class="tag-pill" style="background: var(--color-accent-surface); color: var(--color-accent-hover)">SPECIALTY GRADE</span>
       </div>
     </div>
   </section>

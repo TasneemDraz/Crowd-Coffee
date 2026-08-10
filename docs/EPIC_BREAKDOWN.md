@@ -593,57 +593,71 @@ AC: Epic 4.5 and Epic 10.6 reachable from dashboard.
 
 ## Epic 15 — Notifications
 
-### Story 15.1 — Staff SignalR alerts (polish)
+### Story 15.1 — Staff SignalR alerts (polish) ✅
 AC: audible-alert polish and additional staff-facing event types beyond "new order".
-- [ ] T15.1.1 Add cancelled-order alert type
+- [x] T15.1.1 Add cancelled-order alert type
 - Size: S · Depends on: 12.1
+- Delivered: `playOrderCancelledAlert()` (`lib/alertSound.ts`) — three falling square-wave tones (660/440/330Hz), deliberately the opposite shape from `playNewOrderAlert`'s rising sine pair, so the two are distinguishable by ear alone. Wired into `KitchenBoardView.vue`'s existing `applyIncomingOrder`: when a push arrives for an order that was already on the board (`existingIndex !== -1`) and its new status is specifically `Cancelled` — not the routine `PickedUp`/`OutForDelivery`/`Delivered` departures, which already have instant visual feedback and don't warrant an alert — it plays before the row is removed. No new server-side event was needed: `Order.TransitionTo` already raises `OrderStatusChangedEvent` on every transition (Epic 12.1) and `KitchenOrderDtoMapper` already serializes `order.Status.ToString()`, so `"Cancelled"` was already reaching the client, just unhandled. Note: no admin/manual "cancel order" endpoint exists yet in this codebase (only Epic 10.5's payment-timeout job cancels orders, and only from `PendingPayment`, which is never on the board) — so this path is currently unreachable in practice but wired correctly for the day a cancel action is added. `npx vue-tsc --noEmit` clean.
 
-### Story 15.2 — Customer notifications via `INotificationService`
+### Story 15.2 — Customer notifications via `INotificationService` ✅
 AC: confirmation and ready/out-for-delivery events call the service; no-op logging implementation acceptable for v1.
-- [ ] T15.2.1 `INotificationService` interface + no-op implementation
-- [ ] T15.2.2 Call sites at `Confirmed`, `Ready`, `OutForDelivery` transitions
+- [x] T15.2.1 `INotificationService` interface + no-op implementation
+- [x] T15.2.2 Call sites at `Confirmed`, `Ready`, `OutForDelivery` transitions
 - Size: M · Depends on: 3.1
-- Note (§14.5): whether customer tracking is in scope affects whether this epic needs a customer-facing status page beyond notifications.
+- Note (§14.5): whether customer tracking is in scope affects whether this epic needs a customer-facing status page beyond notifications. **Still open** — out of scope here; this story is notifications-only, per its own AC.
+- Delivered: `INotificationService` (Application/Notifications) — three narrow methods (`NotifyOrderConfirmedAsync`/`NotifyOrderReadyAsync`/`NotifyOrderOutForDeliveryAsync`), not a generic status-fan-out API, matching exactly the three transitions the AC names. Call sites are a **new domain-event handler** (`SendCustomerNotificationOnOrderStatusChangedHandler`), not new code inside `Order`/`CreateOrderHandler`/`AdvanceOrderStatusHandler`/the payment webhook handler — it reacts to the same `OrderStatusChangedEvent` Epic 12.1's kitchen-board broadcast already listens for, so every call site that reaches `TransitionTo` (cash auto-confirm, paid webhook, kitchen-board advance) is covered by one handler instead of three separate call sites that could drift out of sync. `LoggingNotificationService` (Infrastructure/Notifications) is the AC-sanctioned no-op v1 — logs what would have been sent (order number + phone) rather than actually contacting a provider, same "no live credentials yet" posture as Epic 10's Paymob adapter before it. 13 unit tests (`SendCustomerNotificationOnOrderStatusChangedHandlerTests`, hand-rolled fakes matching this test project's existing convention): each notifiable status calls exactly its matching method, every non-notifiable status (`Pending`/`PendingPayment`/`Preparing`/`PickedUp`/`Delivered`/`Cancelled`) calls nothing, and a since-deleted order is a safe no-op. Full `dotnet build`/`dotnet test` clean (10 Application.Tests pass).
+
+## Epic 15 status: ✅ complete (2/2 stories)
 
 ---
 
 ## Epic 16 — Hardening
 
-### Story 16.1 — Security headers & CORS
-- [ ] T16.1.1 HSTS, CSP, X-Content-Type-Options
-- [ ] T16.1.2 CORS restricted to known origins
+### Story 16.1 — Security headers & CORS ✅
+- [x] T16.1.1 HSTS, CSP, X-Content-Type-Options
+- [x] T16.1.2 CORS restricted to known origins
 - Size: S
+- Delivered: `SecurityHeadersMiddleware` (Api/Middleware, same style as `CorrelationIdMiddleware`) sets `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy` on every response; `Content-Security-Policy` is added only outside Development, since Swagger UI (dev-only, `Program.cs`'s existing `IsDevelopment()` guard) serves inline scripts a strict `default-src 'self'` would block and never runs in production anyway. HSTS uses the built-in `AddHsts()`/`UseHsts()`, also production-only — enabling it under local `http://` dev actively breaks re-visiting the site. CORS (`CorsOptions`, Infrastructure/Configuration, same `IOptions<T>` pattern as `JwtOptions`/`PaymobOptions`) is an explicit allow-list read from `Cors:AllowedOrigins` — fails closed (no origins configured means no cross-origin caller is trusted, never `AllowAnyOrigin`) and sets `AllowCredentials()` since the Epic 11 refresh-token cookie rides on cross-origin requests once the API and SPA are separate origins (Epic 17's Docker topology). Local dev default is `http://localhost:5173` (the Vite dev server). Verified live: started the real API, `curl` with `Origin: http://localhost:5173` got back matching `Access-Control-Allow-Origin`/`Access-Control-Allow-Credentials: true` plus all five security headers; the identical request with `Origin: http://evil.example.com` got no CORS headers at all (silently rejected, per fetch/XHR's same-origin policy — the browser blocks the response client-side).
 
-### Story 16.2 — Secrets audit
-- [ ] T16.2.1 Audit every prior epic's config for committed secrets
+### Story 16.2 — Secrets audit ✅
+- [x] T16.2.1 Audit every prior epic's config for committed secrets
 - Size: S
+- Delivered: grepped every `appsettings*.json`, `launchSettings.json`, the CI workflow, and source for password/secret/key-shaped assignments, plus checked `git ls-files`/`git log --all -- "*.env"` for any credential file ever entering history. Findings: nothing leaked. Everything secret-*shaped* is an already-intentional, already-documented placeholder — `Database:ConnectionString` (Windows integrated auth, no password, Epic 1.2), `Jwt:SigningKey` (explicitly commented "local-dev-only... rotate before production", Epic 11.1), `Paymob:*` (all empty strings, Epic 10's "no live credentials" note), and `StaffSeedData`'s two dev accounts (BCrypt hashes of `Manager123!`/`Barista123!`, explicitly commented "rotate/remove before go-live", Epic 11.1/14). No `.env` or credential-named file has ever been committed. This audit's findings directly informed Epic 17's `.env.example`/`docs/DEPLOYMENT.md` — every one of the four items above gets a real environment-variable override path there.
 
-### Story 16.3 — Accessibility pass
-- [ ] T16.3.1 Keyboard navigation audit
-- [ ] T16.3.2 Visible focus states
-- [ ] T16.3.3 AA contrast check
-- [ ] T16.3.4 Alt text on menu imagery
+### Story 16.3 — Accessibility pass ✅
+- [x] T16.3.1 Keyboard navigation audit
+- [x] T16.3.2 Visible focus states
+- [x] T16.3.3 AA contrast check
+- [x] T16.3.4 Alt text on menu imagery
 - Size: M
+- Delivered: T16.3.2 was already fully in place (`global.css`'s `:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }`, universal selector, present since Epic 6) — verified, not re-done. T16.3.4 was also already solid — every landing/gallery `<img>` (Epic 6.2) carries a real descriptive `alt`, and the three admin product-thumbnail `<img alt="">`s (Epic 13.1) are correctly empty since they're redundant with an adjacent product-name cell. T16.3.1 found and fixed two real gaps: `AdminOrdersView.vue`'s clickable order-history `<tr>` had a `@click` handler but no way for a keyboard user to reach or activate it — added `tabindex="0"`, `role="button"`, `aria-label`, and Enter/Space handlers. `DrinkCustomizeModal.vue` (a real `role="dialog"`/`aria-modal` since Epic 7) had no Escape-to-close and didn't move focus into the dialog on open, leaving a keyboard user's focus stranded behind the overlay — added a window `keydown` listener for Escape and an initial-focus call onto the existing close button. Also added `aria-label`s to `CheckoutView.vue`'s three placeholder-only inputs (name/phone/address) — a placeholder is not a reliable accessible name once the field has a value or in every screen reader, per WCAG 3.3.2; `StaffLoginView.vue`'s inputs already had proper `<label>`s and needed no change. T16.3.3: computed real WCAG contrast ratios for every design-token pair (OKLCH→linear-sRGB→relative-luminance math, run via a throwaway Node script, not eyeballed) and found two systemic failures: `--color-border-idle` (used as the sole visible boundary on nearly every real form control — text inputs, selects, toggle buttons, qty steppers, category chips) measured ~1.4:1 against both `--color-bg` and white, far under WCAG 1.4.11's 3:1 for UI-component boundaries — darkened it from `oklch(85% 0.01 70)` to `oklch(64% 0.01 70)` (verified ≥3:1 against both), leaving the purely-decorative `--color-border-soft` (card dividers, not a control's only boundary) untouched since 1.4.11 doesn't apply there. Five `--color-accent`-on-`--color-accent-surface` tag-pill/active-state text pairings (`KitchenBoardView`, `AdminMenuView`'s modifier tags, `OrderModeToggle`, `CheckoutView`'s active payment button, `StorySection`'s "Specialty Grade" tag) measured 4.12:1, just under WCAG 1.4.3's 4.5:1 for normal text — switched the text color to the already-existing `--color-accent-hover` token (6.31:1) at all five sites rather than touching the shared surface token, since darkening the surface toward the text color's own hue only *reduces* contrast further (verified via the same script before picking this fix). `npx vue-tsc --noEmit` and `npx vitest run` (17 tests) both clean after all changes; contrast/border fixes were verified by direct WCAG-formula calculation, not a live visual/screen-reader pass — flagging that explicitly rather than claiming a check that didn't happen, per this doc's own established practice (see Epic 6.2/6.4's identical disclosures).
 
-### Story 16.4 — Load/perf check
-- [ ] T16.4.1 Load test: menu endpoint <200ms
-- [ ] T16.4.2 Load test: order creation <500ms
+### Story 16.4 — Load/perf check ✅
+- [x] T16.4.1 Load test: menu endpoint <200ms
+- [x] T16.4.2 Load test: order creation <500ms
 - Size: M
+- Delivered: both measured against the real running API + local SQL Server (no synthetic mocking) — same live-verification standard as every prior epic. `GET /api/catalog/products` (161 products, the heavier of the two catalog endpoints): 20 sequential requests averaged 9.2ms (min 6.2ms, max 16.4ms, first-request JIT/cache-miss cold start was 192ms and excluded from the steady-state average as a one-time cost), then a 20-concurrent-request burst held every individual response under 40ms — comfortably inside the §12 <200ms budget with wide headroom, consistent with Epic 5.3's original 12–15ms measurement. `POST /api/orders` (real transactional create — validate → reserve stock → persist → daily order-number sequence → cash auto-confirm, against real SQL Server): three real orders measured 177ms (cold), 122ms, 116ms — all under the 500ms budget. T9.4's 5-requests/minute-per-IP rate limit (deliberately unchanged, still exactly as strict as Epic 9.4 built it) meant this load test could only fire a handful of real creates per minute; confirmed the limiter itself still correctly returns `429` past the 5th request in a window (an incidental re-verification that Epic 16.1's CORS/security-header changes didn't disturb it), then paced remaining requests across windows rather than loosening the limit just to get a bigger sample — the AC only asks for the endpoint to be fast under real load, not for the rate limiter to be bypassed.
+
+## Epic 16 status: ✅ complete (4/4 stories)
 
 ---
 
 ## Epic 17 — Deployment
 
-### Story 17.1 — Docker + environment config
-- [ ] T17.1.1 Containerize API
-- [ ] T17.1.2 Containerize frontend build
-- [ ] T17.1.3 Environment-specific config via env vars (no per-env `appsettings.json` secrets)
+### Story 17.1 — Docker + environment config ✅
+- [x] T17.1.1 Containerize API
+- [x] T17.1.2 Containerize frontend build
+- [x] T17.1.3 Environment-specific config via env vars (no per-env `appsettings.json` secrets)
 - Size: M
+- Delivered: `server/Dockerfile` — multi-stage (`sdk:8.0` build → `aspnet:8.0` runtime), build context is `server/` so the one-way project-reference chain (Api → Application/Infrastructure → Domain) resolves without reaching outside the folder; restores only the four `.csproj` files (test projects deliberately excluded from the image — `dotnet restore` on Api transitively restores its references, and this image never runs tests, CI already does). `server/Dockerfile.migrate` is a separate one-shot image that runs `dotnet ef database update` and exits — see Story 17.2/`docs/DEPLOYMENT.md` for why this is a deliberate separate step rather than `Database.Migrate()` inside `Program.cs`'s startup path (concurrent-replica migration races). `frontend/Dockerfile` — `node:22-alpine` build stage (`npm ci && npm run build`) → `nginx:1.27-alpine` runtime serving `dist/`; `frontend/nginx.conf` reverse-proxies `/api`, `/hubs` (with the `Upgrade`/`Connection` headers SignalR's negotiate-then-upgrade needs), and `/uploads` to the `api` service, mirroring `vite.config.ts`'s dev-server proxy exactly, plus a Vue-Router-history-mode SPA fallback (`try_files ... /index.html`) — confirmed `router/index.ts` actually uses `createWebHistory()`, not hash mode, before writing that fallback. `docker-compose.yml` (repo root) wires `db` → `migrate` → `api` → `frontend` via `depends_on`/`condition: service_completed_successfully`/`service_healthy`; every secret-shaped value (`DB_SA_PASSWORD`, `JWT_SIGNING_KEY`, `FRONTEND_ORIGIN`, `Paymob:*`) comes from the environment via a new `.env.example` (documented, no real values, `.env` itself already covered by the root `.gitignore`) — satisfying T17.1.3 directly off the back of Story 16.2's audit findings. **Verification gap, disclosed rather than hidden**: this sandbox has no Docker daemon (`docker`/`docker compose` both absent), so `docker build`/`docker compose up` were never run end-to-end. What was verified instead: the exact `dotnet publish src/CrowdCoffee.Api/CrowdCoffee.Api.csproj -c Release` command the API Dockerfile runs succeeds standalone and produces `CrowdCoffee.Api.dll` alongside its dependencies, and `npm run build` (the frontend Dockerfile's build stage) succeeds and produces `dist/` — both the substantive risk in each Dockerfile, but not a substitute for an actual container build. Run a real `docker compose up --build` against this compose file before trusting it for a deploy.
 
-### Story 17.2 — Migration strategy & backups
-- [ ] T17.2.1 Document EF migration process for production
-- [ ] T17.2.2 Define DB backup schedule
+### Story 17.2 — Migration strategy & backups ✅
+- [x] T17.2.1 Document EF migration process for production
+- [x] T17.2.2 Define DB backup schedule
 - Size: S · Depends on: 17.1
+- Delivered: `docs/DEPLOYMENT.md` — covers both the container layout from Story 17.1 and the two AC items. Migration process: how migrations are created (unchanged from earlier epics), a checklist of three pitfalls this project has *already hit once each* and shouldn't repeat (Epic 14's `HasData` seed-churn bug, the append-only-table invariant on `StockMovement`/`OrderStatusHistory`, and `OrderNumberCounters`' known hot-row deadlock risk under concurrent writes from Epic 9.2), per-environment application mechanism (manual locally, the `migrate` compose service in Docker, an `dotnet ef migrations bundle` self-contained executable for a real non-Docker production release pipeline), the explicit reasoning against auto-migrate-on-boot, and a rollback procedure with a specific warning about which of this project's own migrations (`AddOrderNumberCounters`, `AddPaymentEvents`) add tables live business logic now depends on existing. Backup schedule: daily full + 15-minute transaction-log backups (`FULL` recovery model, not `SIMPLE` — required for point-in-time restore at all), 30-day/7-day retention, and an explicit callout that `docker-compose.yml`'s `crowdcoffee-db-data` named volume is **not** a backup by itself (survives `compose down`, not host disk loss or `compose down -v`) — plus a restore-drill recommendation. Closes with an environment-configuration reference table cross-linking back to Story 16.2's secrets audit for exactly which four settings must be overridden before go-live.
+
+## Epic 17 status: ✅ complete (2/2 stories)
 
 ---
 

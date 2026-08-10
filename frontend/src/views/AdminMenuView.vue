@@ -496,7 +496,8 @@ async function saveOption(groupId: string, optionId: string) {
 
 .modifier-group .tag-pill {
   background: var(--color-accent-surface);
-  color: var(--color-accent);
+  /* Story 16.3 (T16.3.3): accent-hover, not accent — see KitchenBoardView's identical fix. */
+  color: var(--color-accent-hover);
   font-size: 11px;
 }
 </style>

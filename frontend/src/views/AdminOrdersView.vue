@@ -79,7 +79,17 @@ async function openDetail(orderId: string) {
           <tr><th>Order #</th><th>Customer</th><th>Mode</th><th>Payment</th><th>Status</th><th>Total</th><th>Placed</th></tr>
         </thead>
         <tbody>
-          <tr v-for="order in orders" :key="order.id" class="clickable" @click="openDetail(order.id)">
+          <tr
+            v-for="order in orders"
+            :key="order.id"
+            class="clickable"
+            tabindex="0"
+            role="button"
+            :aria-label="`View order ${order.orderNumber}`"
+            @click="openDetail(order.id)"
+            @keydown.enter="openDetail(order.id)"
+            @keydown.space.prevent="openDetail(order.id)"
+          >
             <td>{{ order.orderNumber }}</td>
             <td>{{ order.customerName }}</td>
             <td>{{ order.mode }}</td>
