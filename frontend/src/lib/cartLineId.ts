@@ -15,7 +15,9 @@ export function composeDrinkLineId(
   syrupOptionIds: string[],
 ): string {
   const shotPart = shotOptionId ? 'shot' : 'noshot';
-  const syrupPart = [...syrupOptionIds].sort().join('-');
+  // Comma, not '-': syrup option ids are GUIDs, which themselves contain hyphens — joining with
+  // '-' made decomposeDrinkLineId's split('-') shred a single GUID into garbage fragments.
+  const syrupPart = [...syrupOptionIds].sort().join(',');
   return `${productId}::${milkOptionId}::${shotPart}::${syrupPart}`;
 }
 
@@ -48,6 +50,6 @@ export function decomposeDrinkLineId(id: string): DecomposedDrinkLine {
     productId,
     milkOptionId,
     hasShot: shotPart === 'shot',
-    syrupOptionIds: syrupPart ? syrupPart.split('-') : [],
+    syrupOptionIds: syrupPart ? syrupPart.split(',') : [],
   };
 }

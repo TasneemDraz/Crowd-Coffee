@@ -7,7 +7,20 @@ describe('composeDrinkLineId', () => {
     const b = composeDrinkLineId('product-1', 'oat', 'espresso', ['caramel', 'vanilla']);
 
     expect(a).toBe(b);
-    expect(a).toBe('product-1::oat::shot::caramel-vanilla');
+    expect(a).toBe('product-1::oat::shot::caramel,vanilla');
+  });
+
+  it('does not shred syrup GUIDs that contain hyphens', () => {
+    const composed = composeDrinkLineId(
+      'product-1',
+      'oat',
+      null,
+      ['dd0195fb-9e8f-b435-712c-7aa82b9a26a3', '5d11f6ad-675c-767a-4c63-2e23493d1211'],
+    );
+
+    const result = decomposeDrinkLineId(composed);
+
+    expect(result.syrupOptionIds).toEqual(['5d11f6ad-675c-767a-4c63-2e23493d1211', 'dd0195fb-9e8f-b435-712c-7aa82b9a26a3']);
   });
 
   it('produces the same id for identical selections (matching lines)', () => {
